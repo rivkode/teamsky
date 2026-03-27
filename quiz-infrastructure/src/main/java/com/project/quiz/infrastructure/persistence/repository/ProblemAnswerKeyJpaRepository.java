@@ -1,0 +1,11 @@
+package com.project.quiz.infrastructure.persistence.repository;
+
+import com.project.quiz.infrastructure.persistence.entity.ProblemAnswerKeyJpaEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ProblemAnswerKeyJpaRepository extends JpaRepository<ProblemAnswerKeyJpaEntity, Long> {
+
+    List<ProblemAnswerKeyJpaEntity> findAllByProblemIdOrderByIdAsc(Long problemId);
+}

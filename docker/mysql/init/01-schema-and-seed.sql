@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS problems (
     id BIGINT NOT NULL PRIMARY KEY,
     chapter_id BIGINT NOT NULL,
     content TEXT NOT NULL,
+    answer_format VARCHAR(30) NOT NULL,
     problem_type VARCHAR(30) NOT NULL,
+    explanation TEXT NOT NULL,
     CONSTRAINT fk_problems_chapter FOREIGN KEY (chapter_id) REFERENCES chapters (id)
 );
 
@@ -31,6 +33,7 @@ CREATE TABLE IF NOT EXISTS solve_attempts (
     problem_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL,
     is_correct BIT NULL,
+    answer_status VARCHAR(20) NULL,
     created_at DATETIME NOT NULL,
     INDEX idx_solve_attempts_user_chapter (user_id, chapter_id),
     INDEX idx_solve_attempts_problem (problem_id),
@@ -39,22 +42,43 @@ CREATE TABLE IF NOT EXISTS solve_attempts (
     CONSTRAINT fk_solve_attempts_problem FOREIGN KEY (problem_id) REFERENCES problems (id)
 );
 
+CREATE TABLE IF NOT EXISTS problem_answer_keys (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    problem_id BIGINT NOT NULL,
+    answer_format VARCHAR(30) NOT NULL,
+    choice_sequence INT NULL,
+    subjective_answer TEXT NULL,
+    CONSTRAINT fk_problem_answer_keys_problem FOREIGN KEY (problem_id) REFERENCES problems (id)
+);
+
+CREATE TABLE IF NOT EXISTS solve_attempt_answers (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    solve_attempt_id BIGINT NOT NULL,
+    answer_format VARCHAR(30) NOT NULL,
+    choice_sequence INT NULL,
+    subjective_answer TEXT NULL,
+    CONSTRAINT fk_solve_attempt_answers_attempt FOREIGN KEY (solve_attempt_id) REFERENCES solve_attempts (id)
+);
+
 INSERT INTO chapters (id, title) VALUES
     (1, 'Java Basics'),
     (2, 'Spring Core')
 ON DUPLICATE KEY UPDATE title = VALUES(title);
 
-INSERT INTO problems (id, chapter_id, content, problem_type) VALUES
-    (1001, 1, 'Java에서 기본형 중 정수 타입이 아닌 것을 고르세요.', 'SINGLE_ANSWER'),
-    (1002, 1, 'JVM 메모리 영역에 대한 설명으로 옳은 것을 모두 고르세요.', 'MULTIPLE_ANSWER'),
-    (1003, 1, 'List와 Set의 차이로 가장 적절한 것을 고르세요.', 'SINGLE_ANSWER'),
-    (1004, 1, '예외 처리 방식으로 적절한 것을 모두 고르세요.', 'MULTIPLE_ANSWER'),
-    (2001, 2, 'Spring Bean의 기본 scope는 무엇인가요?', 'SINGLE_ANSWER'),
-    (2002, 2, '트랜잭션 전파 속성에 대한 설명으로 옳은 것을 모두 고르세요.', 'MULTIPLE_ANSWER')
+INSERT INTO problems (id, chapter_id, content, answer_format, problem_type, explanation) VALUES
+    (1001, 1, 'Java에서 기본형 중 정수 타입이 아닌 것을 고르세요.', 'OBJECTIVE', 'SINGLE_ANSWER', '정답은 boolean 입니다.'),
+    (1002, 1, 'JVM 메모리 영역에 대한 설명으로 옳은 것을 모두 고르세요.', 'OBJECTIVE', 'MULTIPLE_ANSWER', 'Heap, Method Area, PC Register 관련 설명이 정답입니다.'),
+    (1003, 1, 'List와 Set의 차이로 가장 적절한 것을 고르세요.', 'OBJECTIVE', 'SINGLE_ANSWER', 'List는 중복 허용, Set은 중복 비허용이 핵심 차이입니다.'),
+    (1004, 1, '예외 처리 방식으로 적절한 것을 모두 고르세요.', 'OBJECTIVE', 'MULTIPLE_ANSWER', '복구 가능성과 일관된 오류 응답이 핵심입니다.'),
+    (2001, 2, 'Spring Bean의 기본 scope는 무엇인가요?', 'OBJECTIVE', 'SINGLE_ANSWER', '기본 scope는 singleton 입니다.'),
+    (2002, 2, '트랜잭션 전파 속성에 대한 설명으로 옳은 것을 모두 고르세요.', 'OBJECTIVE', 'MULTIPLE_ANSWER', 'REQUIRED, REQUIRES_NEW, SUPPORTS가 정답입니다.'),
+    (2003, 2, 'Spring에서 기본 Bean scope 이름을 입력하세요.', 'SUBJECTIVE', 'SINGLE_ANSWER', '기본 Bean scope 이름은 singleton 입니다.')
 ON DUPLICATE KEY UPDATE
     chapter_id = VALUES(chapter_id),
     content = VALUES(content),
-    problem_type = VALUES(problem_type);
+    answer_format = VALUES(answer_format),
+    problem_type = VALUES(problem_type),
+    explanation = VALUES(explanation);
 
 INSERT INTO problem_choices (problem_id, sequence, content) VALUES
     (1001, 1, 'int'),
@@ -96,47 +120,63 @@ ON DUPLICATE KEY UPDATE
     sequence = VALUES(sequence),
     content = VALUES(content);
 
-INSERT INTO solve_attempts (user_id, chapter_id, problem_id, status, is_correct, created_at) VALUES
-    (1, 1, 1003, 'SOLVED', b'1', '2026-03-26 10:00:00'),
-    (1, 1, 1002, 'SKIPPED', NULL, '2026-03-26 10:05:00'),
-    (2, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:00:00'),
-    (3, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:01:00'),
-    (4, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:02:00'),
-    (5, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:03:00'),
-    (6, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:04:00'),
-    (7, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:05:00'),
-    (8, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:06:00'),
-    (9, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:07:00'),
-    (10, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:08:00'),
-    (11, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:09:00'),
-    (12, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:10:00'),
-    (13, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:11:00'),
-    (14, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:12:00'),
-    (15, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:13:00'),
-    (16, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:14:00'),
-    (17, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:15:00'),
-    (18, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:16:00'),
-    (19, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:17:00'),
-    (20, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:18:00'),
-    (21, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:19:00'),
-    (22, 1, 1001, 'SOLVED', b'1', '2026-03-26 09:20:00'),
-    (23, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:21:00'),
-    (24, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:22:00'),
-    (25, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:23:00'),
-    (26, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:24:00'),
-    (27, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:25:00'),
-    (28, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:26:00'),
-    (29, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:27:00'),
-    (30, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:28:00'),
-    (31, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:29:00'),
-    (32, 1, 1001, 'SOLVED', b'0', '2026-03-26 09:30:00'),
-    (2, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:00:00'),
-    (3, 1, 1004, 'SOLVED', b'0', '2026-03-26 11:01:00'),
-    (4, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:02:00'),
-    (5, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:03:00'),
-    (6, 1, 1004, 'SOLVED', b'0', '2026-03-26 11:04:00'),
-    (7, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:05:00'),
-    (8, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:06:00'),
-    (9, 1, 1004, 'SOLVED', b'0', '2026-03-26 11:07:00'),
-    (10, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:08:00'),
-    (11, 1, 1004, 'SOLVED', b'1', '2026-03-26 11:09:00');
+INSERT INTO problem_answer_keys (problem_id, answer_format, choice_sequence, subjective_answer) VALUES
+    (1001, 'OBJECTIVE', 3, NULL),
+    (1002, 'OBJECTIVE', 1, NULL),
+    (1002, 'OBJECTIVE', 2, NULL),
+    (1002, 'OBJECTIVE', 4, NULL),
+    (1003, 'OBJECTIVE', 2, NULL),
+    (1004, 'OBJECTIVE', 1, NULL),
+    (1004, 'OBJECTIVE', 3, NULL),
+    (1004, 'OBJECTIVE', 4, NULL),
+    (2001, 'OBJECTIVE', 2, NULL),
+    (2002, 'OBJECTIVE', 1, NULL),
+    (2002, 'OBJECTIVE', 2, NULL),
+    (2002, 'OBJECTIVE', 4, NULL),
+    (2003, 'SUBJECTIVE', NULL, 'singleton'),
+    (2003, 'SUBJECTIVE', NULL, '싱글톤');
+
+INSERT INTO solve_attempts (user_id, chapter_id, problem_id, status, is_correct, answer_status, created_at) VALUES
+    (1, 1, 1003, 'SOLVED', b'1', 'CORRECT', '2026-03-26 10:00:00'),
+    (1, 1, 1002, 'SKIPPED', NULL, NULL, '2026-03-26 10:05:00'),
+    (2, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:00:00'),
+    (3, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:01:00'),
+    (4, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:02:00'),
+    (5, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:03:00'),
+    (6, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:04:00'),
+    (7, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:05:00'),
+    (8, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:06:00'),
+    (9, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:07:00'),
+    (10, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:08:00'),
+    (11, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:09:00'),
+    (12, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:10:00'),
+    (13, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:11:00'),
+    (14, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:12:00'),
+    (15, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:13:00'),
+    (16, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:14:00'),
+    (17, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:15:00'),
+    (18, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:16:00'),
+    (19, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:17:00'),
+    (20, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:18:00'),
+    (21, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:19:00'),
+    (22, 1, 1001, 'SOLVED', b'1', 'CORRECT', '2026-03-26 09:20:00'),
+    (23, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:21:00'),
+    (24, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:22:00'),
+    (25, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:23:00'),
+    (26, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:24:00'),
+    (27, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:25:00'),
+    (28, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:26:00'),
+    (29, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:27:00'),
+    (30, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:28:00'),
+    (31, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:29:00'),
+    (32, 1, 1001, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 09:30:00'),
+    (2, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:00:00'),
+    (3, 1, 1004, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 11:01:00'),
+    (4, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:02:00'),
+    (5, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:03:00'),
+    (6, 1, 1004, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 11:04:00'),
+    (7, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:05:00'),
+    (8, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:06:00'),
+    (9, 1, 1004, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 11:07:00'),
+    (10, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:08:00'),
+    (11, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:09:00');

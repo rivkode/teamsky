@@ -2,6 +2,7 @@ package com.project.quiz.api.common;
 
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
+import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleProblemNotFoundInChapter(ProblemNotFoundInChapterException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("PROBLEM_NOT_FOUND_IN_CHAPTER", exception.getMessage()));
+    }
+
+    @ExceptionHandler(ProblemAnswerTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleProblemAnswerTypeMismatch(ProblemAnswerTypeMismatchException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("PROBLEM_ANSWER_TYPE_MISMATCH", exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
