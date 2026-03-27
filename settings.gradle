@@ -1,0 +1,7 @@
+rootProject.name = 'teamsky'
+
+include 'quiz-api'
+include 'quiz-application'
+include 'quiz-domain'
+include 'quiz-infrastructure'
+include 'quiz-bootstrap'
