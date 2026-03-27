@@ -35,6 +35,10 @@ public class SolveAttemptJpaEntity {
     @Column(name = "is_correct")
     private Boolean correct;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "answer_status", length = 20)
+    private com.project.quiz.domain.solving.AnswerStatus answerStatus;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -47,6 +51,7 @@ public class SolveAttemptJpaEntity {
             Long problemId,
             AttemptStatus status,
             Boolean correct,
+            com.project.quiz.domain.solving.AnswerStatus answerStatus,
             LocalDateTime createdAt
     ) {
         SolveAttemptJpaEntity entity = new SolveAttemptJpaEntity();
@@ -55,11 +60,36 @@ public class SolveAttemptJpaEntity {
         entity.problemId = problemId;
         entity.status = status;
         entity.correct = correct;
+        entity.answerStatus = answerStatus;
         entity.createdAt = createdAt;
         return entity;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public Long getProblemId() {
         return problemId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Long getChapterId() {
+        return chapterId;
+    }
+
+    public AttemptStatus getStatus() {
+        return status;
+    }
+
+    public Boolean getCorrect() {
+        return correct;
+    }
+
+    public com.project.quiz.domain.solving.AnswerStatus getAnswerStatus() {
+        return answerStatus;
     }
 }

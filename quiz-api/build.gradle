@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':quiz-application')
+    implementation project(':quiz-domain')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'

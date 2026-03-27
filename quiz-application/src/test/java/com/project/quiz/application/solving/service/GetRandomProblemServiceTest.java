@@ -9,6 +9,8 @@ import com.project.quiz.application.solving.port.out.LoadUserChapterSolvingState
 import com.project.quiz.application.solving.port.out.PickRandomProblemPort;
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.domain.problem.Problem;
+import com.project.quiz.domain.problem.ProblemAnswerFormat;
+import com.project.quiz.domain.problem.ProblemAnswerKey;
 import com.project.quiz.domain.problem.ProblemChoice;
 import com.project.quiz.domain.problem.ProblemType;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
@@ -140,6 +142,7 @@ class GetRandomProblemServiceTest {
                 problemId,
                 chapterId,
                 content,
+                ProblemAnswerFormat.OBJECTIVE,
                 ProblemType.SINGLE_ANSWER,
                 List.of(
                         new ProblemChoice(1, "choice-1"),
@@ -147,7 +150,9 @@ class GetRandomProblemServiceTest {
                         new ProblemChoice(3, "choice-3"),
                         new ProblemChoice(4, "choice-4"),
                         new ProblemChoice(5, "choice-5")
-                )
+                ),
+                new ProblemAnswerKey(Set.of(1), List.of()),
+                "해설"
         );
     }
 }
