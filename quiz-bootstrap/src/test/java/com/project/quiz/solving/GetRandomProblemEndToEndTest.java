@@ -218,4 +218,53 @@ class GetRandomProblemEndToEndTest {
                 .andExpect(jsonPath("$.problemAnswers[0]").value("1"))
                 .andExpect(jsonPath("$.problemAnswers[1]").value("2"));
     }
+
+    @Test
+    @DisplayName("풀었던 문제 상세를 조회한다")
+    void getSolvedProblemDetailEndToEnd() throws Exception {
+        chapterJpaRepository.save(ChapterJpaEntity.create(1L, "chapter-1"));
+        problemJpaRepository.save(ProblemJpaEntity.create(
+                4001L, 1L, "정답을 모두 고르세요", ProblemAnswerFormat.OBJECTIVE, ProblemType.MULTIPLE_ANSWER, "정답은 1번과 2번입니다."
+        ));
+        problemChoiceJpaRepository.saveAll(List.of(
+                ProblemChoiceJpaEntity.create(4001L, 1, "선택지 1"),
+                ProblemChoiceJpaEntity.create(4001L, 2, "선택지 2"),
+                ProblemChoiceJpaEntity.create(4001L, 3, "선택지 3"),
+                ProblemChoiceJpaEntity.create(4001L, 4, "선택지 4"),
+                ProblemChoiceJpaEntity.create(4001L, 5, "선택지 5")
+        ));
+        problemAnswerKeyJpaRepository.saveAll(List.of(
+                ProblemAnswerKeyJpaEntity.objective(4001L, 1),
+                ProblemAnswerKeyJpaEntity.objective(4001L, 2)
+        ));
+
+        SolveAttemptJpaEntity solvedAttempt = solveAttemptJpaRepository.save(
+                SolveAttemptJpaEntity.create(1L, 1L, 4001L, AttemptStatus.SOLVED, false, AnswerStatus.PARTIAL, LocalDateTime.now())
+        );
+        solveAttemptAnswerJpaRepository.saveAll(List.of(
+                com.project.quiz.infrastructure.persistence.entity.SolveAttemptAnswerJpaEntity.objective(solvedAttempt.getId(), 1),
+                com.project.quiz.infrastructure.persistence.entity.SolveAttemptAnswerJpaEntity.objective(solvedAttempt.getId(), 3)
+        ));
+
+        solveAttemptJpaRepository.saveAll(List.of(
+                SolveAttemptJpaEntity.create(2L, 1L, 4001L, AttemptStatus.SOLVED, true, AnswerStatus.CORRECT, LocalDateTime.now().minusSeconds(30)),
+                SolveAttemptJpaEntity.create(3L, 1L, 4001L, AttemptStatus.SOLVED, false, AnswerStatus.INCORRECT, LocalDateTime.now().minusSeconds(20)),
+                SolveAttemptJpaEntity.create(4L, 1L, 4001L, AttemptStatus.SOLVED, true, AnswerStatus.CORRECT, LocalDateTime.now().minusSeconds(10))
+        ));
+
+        mockMvc.perform(post("/api/problems/detail")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "userId", 1L,
+                                "problemId", 4001L
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.problemId").value(4001))
+                .andExpect(jsonPath("$.answerStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.problemAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.problemAnswers[1]").value("2"))
+                .andExpect(jsonPath("$.userAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.userAnswers[1]").value("3"))
+                .andExpect(jsonPath("$.answerCorrectRate").value(nullValue()));
+    }
 }
