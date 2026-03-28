@@ -1,4 +1,4 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
