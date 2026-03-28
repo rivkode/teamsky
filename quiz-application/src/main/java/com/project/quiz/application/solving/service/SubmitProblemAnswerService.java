@@ -1,5 +1,6 @@
 package com.project.quiz.application.solving.service;
 
+import com.project.quiz.application.statistics.service.ProblemStatisticsUpdateService;
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
 import com.project.quiz.application.solving.model.SubmitProblemAnswerCommand;
@@ -21,6 +22,7 @@ public class SubmitProblemAnswerService {
 
     private final ProblemRepository problemRepository;
     private final SolveAttemptRepository solveAttemptRepository;
+    private final ProblemStatisticsUpdateService problemStatisticsUpdateService;
 
     @Transactional
     public SubmitProblemAnswerResult submit(SubmitProblemAnswerCommand command) {
@@ -46,6 +48,11 @@ public class SubmitProblemAnswerService {
                 problem.chapterId(),
                 problem.id(),
                 submittedAnswer,
+                gradingResult.answerStatus()
+        );
+        problemStatisticsUpdateService.recordSolvedProblem(
+                problem.id(),
+                command.userId(),
                 gradingResult.answerStatus()
         );
 
