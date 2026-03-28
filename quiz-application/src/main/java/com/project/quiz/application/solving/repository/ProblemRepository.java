@@ -12,4 +12,6 @@ public interface ProblemRepository {
     List<Problem> findAllByChapterId(Long chapterId);
 
     Optional<Problem> findById(Long problemId);
+
+    void lockById(Long problemId);
 }
