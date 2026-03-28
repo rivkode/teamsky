@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.quiz.api.TestApiApplication;
 import com.project.quiz.api.common.GlobalExceptionHandler;
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
+import com.project.quiz.application.solving.exception.InvalidProblemChoiceException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
@@ -279,5 +280,51 @@ class ProblemControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("subjectiveAnswer: subjectiveAnswer must not be blank for SUBJECTIVE answerType"));
+    }
+
+    @Test
+    @DisplayName("객관식 제출에서 주관식 답안이 같이 오면 400을 반환한다")
+    void returnBadRequestWhenObjectiveContainsSubjectiveAnswer() throws Exception {
+        mockMvc.perform(post("/api/problems/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), "text"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("subjectiveAnswer: subjectiveAnswer must be blank for OBJECTIVE answerType"));
+    }
+
+    @Test
+    @DisplayName("주관식 제출에서 객관식 선택지가 같이 오면 400을 반환한다")
+    void returnBadRequestWhenSubjectiveContainsSelectedChoices() throws Exception {
+        mockMvc.perform(post("/api/problems/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.SUBJECTIVE, List.of(1), "answer"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("selectedChoices: selectedChoices must be empty for SUBJECTIVE answerType"));
+    }
+
+    @Test
+    @DisplayName("객관식 제출에서 중복 선택지가 오면 400을 반환한다")
+    void returnBadRequestWhenObjectiveContainsDuplicateChoices() throws Exception {
+        mockMvc.perform(post("/api/problems/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 1), null))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("selectedChoices: selectedChoices must not contain duplicates"));
+    }
+
+    @Test
+    @DisplayName("문제 제출에서 존재하지 않는 선택지 번호면 400을 반환한다")
+    void returnBadRequestWhenProblemChoiceInvalid() throws Exception {
+        when(submitProblemAnswerService.submit(any()))
+                .thenThrow(new InvalidProblemChoiceException(1001L, List.of(7)));
+
+        mockMvc.perform(post("/api/problems/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(7), null))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PROBLEM_CHOICE"));
     }
 }

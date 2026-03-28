@@ -1,6 +1,7 @@
 package com.project.quiz.api.common;
 
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
+import com.project.quiz.application.solving.exception.InvalidProblemChoiceException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
@@ -45,6 +46,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleProblemAnswerTypeMismatch(ProblemAnswerTypeMismatchException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("PROBLEM_ANSWER_TYPE_MISMATCH", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidProblemChoiceException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidProblemChoice(InvalidProblemChoiceException exception) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse("INVALID_PROBLEM_CHOICE", exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
