@@ -1,6 +1,7 @@
 package com.project.quiz.application.solving.service;
 
 import com.project.quiz.application.statistics.service.ProblemStatisticsUpdateService;
+import com.project.quiz.application.solving.exception.InvalidProblemChoiceException;
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.model.SubmitProblemAnswerCommand;
 import com.project.quiz.application.solving.model.SubmitProblemAnswerResult;
@@ -24,6 +25,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,7 +78,8 @@ class SubmitProblemAnswerServiceTest {
     void objectivePartialAnswerReturnsPartial() {
         Problem problem = new Problem(
                 100L, 1L, "problem", ProblemAnswerFormat.OBJECTIVE, ProblemType.MULTIPLE_ANSWER,
-                List.of(), new ProblemAnswerKey(Set.of(1, 2), List.of()), "해설"
+                List.of(new ProblemChoice(1, "a"), new ProblemChoice(2, "b"), new ProblemChoice(3, "c")),
+                new ProblemAnswerKey(Set.of(1, 2), List.of()), "해설"
         );
         when(problemRepository.findById(100L)).thenReturn(Optional.of(problem));
 
@@ -113,5 +116,33 @@ class SubmitProblemAnswerServiceTest {
         assertThatThrownBy(() -> submitProblemAnswerService.submit(
                 new SubmitProblemAnswerCommand(200L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), null)
         )).isInstanceOf(ProblemAnswerTypeMismatchException.class);
+    }
+
+    @Test
+    void invalidObjectiveChoiceThrowsException() {
+        Problem problem = new Problem(
+                100L, 1L, "problem", ProblemAnswerFormat.OBJECTIVE, ProblemType.MULTIPLE_ANSWER,
+                List.of(new ProblemChoice(1, "a"), new ProblemChoice(2, "b")),
+                new ProblemAnswerKey(Set.of(1, 2), List.of()),
+                "해설"
+        );
+        when(problemRepository.findById(100L)).thenReturn(Optional.of(problem));
+
+        assertThatThrownBy(() -> submitProblemAnswerService.submit(
+                new SubmitProblemAnswerCommand(100L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 3), null)
+        )).isInstanceOf(InvalidProblemChoiceException.class);
+
+        verify(solveAttemptRepository, never()).saveSolvedAttempt(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
+        verify(problemStatisticsUpdateService, never()).recordSolvedProblem(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 }
