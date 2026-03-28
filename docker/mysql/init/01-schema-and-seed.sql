@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS solve_attempts (
     INDEX idx_solve_attempts_user_chapter (user_id, chapter_id),
     INDEX idx_solve_attempts_problem (problem_id),
     INDEX idx_solve_attempts_user_chapter_status (user_id, chapter_id, status),
+    INDEX idx_solve_attempts_user_problem_status_id (user_id, problem_id, status, id),
     CONSTRAINT fk_solve_attempts_chapter FOREIGN KEY (chapter_id) REFERENCES chapters (id),
     CONSTRAINT fk_solve_attempts_problem FOREIGN KEY (problem_id) REFERENCES problems (id)
 );
