@@ -1,16 +1,22 @@
 package com.project.quiz.solving;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.quiz.application.solving.model.SubmitProblemAnswerCommand;
+import com.project.quiz.application.solving.service.SubmitProblemAnswerService;
 import com.project.quiz.infrastructure.persistence.entity.AttemptStatus;
 import com.project.quiz.infrastructure.persistence.entity.ChapterJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.ProblemAnswerKeyJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.ProblemChoiceJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.ProblemJpaEntity;
+import com.project.quiz.infrastructure.persistence.entity.ProblemStatisticsJpaEntity;
+import com.project.quiz.infrastructure.persistence.entity.ProblemUserStatisticsJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.SolveAttemptJpaEntity;
 import com.project.quiz.infrastructure.persistence.repository.ProblemAnswerKeyJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ProblemChoiceJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ProblemJpaRepository;
+import com.project.quiz.infrastructure.persistence.repository.ProblemStatisticsJpaRepository;
+import com.project.quiz.infrastructure.persistence.repository.ProblemUserStatisticsJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.SolveAttemptAnswerJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.SolveAttemptJpaRepository;
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
@@ -26,9 +32,17 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -43,6 +57,9 @@ class GetRandomProblemEndToEndTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private SubmitProblemAnswerService submitProblemAnswerService;
 
     @Autowired
     private ChapterJpaRepository chapterJpaRepository;
@@ -62,8 +79,16 @@ class GetRandomProblemEndToEndTest {
     @Autowired
     private SolveAttemptAnswerJpaRepository solveAttemptAnswerJpaRepository;
 
+    @Autowired
+    private ProblemStatisticsJpaRepository problemStatisticsJpaRepository;
+
+    @Autowired
+    private ProblemUserStatisticsJpaRepository problemUserStatisticsJpaRepository;
+
     @BeforeEach
     void setUp() {
+        problemUserStatisticsJpaRepository.deleteAll();
+        problemStatisticsJpaRepository.deleteAll();
         solveAttemptAnswerJpaRepository.deleteAll();
         solveAttemptJpaRepository.deleteAll();
         problemAnswerKeyJpaRepository.deleteAll();
@@ -105,6 +130,9 @@ class GetRandomProblemEndToEndTest {
                 SolveAttemptJpaEntity.create(3L, 1L, 102L, AttemptStatus.SOLVED, false, AnswerStatus.INCORRECT, LocalDateTime.now().minusSeconds(40)),
                 SolveAttemptJpaEntity.create(4L, 1L, 102L, AttemptStatus.SOLVED, true, AnswerStatus.CORRECT, LocalDateTime.now().minusSeconds(30))
         ));
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(102L, 3L, 2L, null, LocalDateTime.now())
+        );
 
         mockMvc.perform(post("/api/problems/random")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -202,6 +230,9 @@ class GetRandomProblemEndToEndTest {
                 ProblemAnswerKeyJpaEntity.objective(3001L, 1),
                 ProblemAnswerKeyJpaEntity.objective(3001L, 2)
         ));
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(3001L, 0L, 0L, null, LocalDateTime.now())
+        );
 
         mockMvc.perform(post("/api/problems/submit")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -251,6 +282,9 @@ class GetRandomProblemEndToEndTest {
                 SolveAttemptJpaEntity.create(3L, 1L, 4001L, AttemptStatus.SOLVED, false, AnswerStatus.INCORRECT, LocalDateTime.now().minusSeconds(20)),
                 SolveAttemptJpaEntity.create(4L, 1L, 4001L, AttemptStatus.SOLVED, true, AnswerStatus.CORRECT, LocalDateTime.now().minusSeconds(10))
         ));
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(4001L, 4L, 2L, null, LocalDateTime.now())
+        );
 
         mockMvc.perform(post("/api/problems/detail")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -266,5 +300,194 @@ class GetRandomProblemEndToEndTest {
                 .andExpect(jsonPath("$.userAnswers[0]").value("1"))
                 .andExpect(jsonPath("$.userAnswers[1]").value("3"))
                 .andExpect(jsonPath("$.answerCorrectRate").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("문제 제출 시 최초 풀이 사용자 기준으로 문제 통계를 갱신한다")
+    void updateProblemStatisticsWhenSubmitSucceeds() throws Exception {
+        chapterJpaRepository.save(ChapterJpaEntity.create(1L, "chapter-1"));
+        problemJpaRepository.save(ProblemJpaEntity.create(
+                5001L, 1L, "정답을 고르세요", ProblemAnswerFormat.OBJECTIVE, ProblemType.SINGLE_ANSWER, "정답은 2번입니다."
+        ));
+        problemChoiceJpaRepository.saveAll(List.of(
+                ProblemChoiceJpaEntity.create(5001L, 1, "선택지 1"),
+                ProblemChoiceJpaEntity.create(5001L, 2, "선택지 2"),
+                ProblemChoiceJpaEntity.create(5001L, 3, "선택지 3"),
+                ProblemChoiceJpaEntity.create(5001L, 4, "선택지 4"),
+                ProblemChoiceJpaEntity.create(5001L, 5, "선택지 5")
+        ));
+        problemAnswerKeyJpaRepository.save(
+                ProblemAnswerKeyJpaEntity.objective(5001L, 2)
+        );
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(5001L, 0L, 0L, null, LocalDateTime.now())
+        );
+
+        mockMvc.perform(post("/api/problems/submit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "problemId", 5001L,
+                                "userId", 1L,
+                                "answerType", "OBJECTIVE",
+                                "selectedChoices", List.of(2)
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answerStatus").value("CORRECT"));
+
+        ProblemStatisticsJpaEntity statistics = problemStatisticsJpaRepository.findById(5001L).orElseThrow();
+
+        assert statistics.getSolvedUserCount() == 1L;
+        assert statistics.getCorrectUserCount() == 1L;
+        assert statistics.getCorrectRate() == null;
+    }
+
+    @Test
+    @DisplayName("동일한 문제에 대해 서로 다른 100명의 사용자가 동시에 제출해도 문제 통계가 정확히 집계된다")
+    void concurrentSubmitByDifferentUsers() throws Exception {
+        long problemId = 6001L;
+        prepareObjectiveProblem(problemId, ProblemType.SINGLE_ANSWER);
+
+        int userCount = 100;
+        ExecutorService executorService = Executors.newFixedThreadPool(userCount);
+        CountDownLatch readyLatch = new CountDownLatch(userCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        ConcurrentLinkedQueue<Throwable> failures = new ConcurrentLinkedQueue<>();
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int index = 0; index < userCount; index++) {
+            long userId = 10_000L + index;
+            futures.add(executorService.submit(() -> {
+                readyLatch.countDown();
+                await(startLatch, failures);
+                try {
+                    submitProblemAnswerService.submit(new SubmitProblemAnswerCommand(
+                            problemId,
+                            userId,
+                            ProblemAnswerFormat.OBJECTIVE,
+                            List.of(2),
+                            null
+                    ));
+                } catch (Throwable throwable) {
+                    failures.add(throwable);
+                }
+            }));
+        }
+
+        assertThat(readyLatch.await(5, TimeUnit.SECONDS)).isTrue();
+        startLatch.countDown();
+
+        for (Future<?> future : futures) {
+            future.get(10, TimeUnit.SECONDS);
+        }
+        executorService.shutdown();
+        assertThat(executorService.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(failures).isEmpty();
+
+        ProblemStatisticsJpaEntity statistics = problemStatisticsJpaRepository.findById(problemId).orElseThrow();
+        long attemptCount = solveAttemptJpaRepository.findAll().stream()
+                .filter(attempt -> attempt.getProblemId().equals(problemId))
+                .count();
+        long userStatisticsCount = problemUserStatisticsJpaRepository.findAll().stream()
+                .filter(stat -> stat.getProblemId().equals(problemId))
+                .count();
+
+        assertThat(attemptCount).isEqualTo(100L);
+        assertThat(userStatisticsCount).isEqualTo(100L);
+        assertThat(statistics.getSolvedUserCount()).isEqualTo(100L);
+        assertThat(statistics.getCorrectUserCount()).isEqualTo(100L);
+        assertThat(statistics.getCorrectRate()).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("동일한 사용자가 같은 문제를 동시에 여러 번 제출해도 distinct user 기준 통계는 1번만 집계된다")
+    void concurrentDuplicateSubmitBySameUser() throws Exception {
+        long problemId = 6002L;
+        long userId = 20_001L;
+        prepareObjectiveProblem(problemId, ProblemType.SINGLE_ANSWER);
+
+        int requestCount = 100;
+        ExecutorService executorService = Executors.newFixedThreadPool(requestCount);
+        CountDownLatch readyLatch = new CountDownLatch(requestCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        ConcurrentLinkedQueue<Throwable> failures = new ConcurrentLinkedQueue<>();
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int index = 0; index < requestCount; index++) {
+            futures.add(executorService.submit(() -> {
+                readyLatch.countDown();
+                await(startLatch, failures);
+                try {
+                    submitProblemAnswerService.submit(new SubmitProblemAnswerCommand(
+                            problemId,
+                            userId,
+                            ProblemAnswerFormat.OBJECTIVE,
+                            List.of(2),
+                            null
+                    ));
+                } catch (Throwable throwable) {
+                    failures.add(throwable);
+                }
+            }));
+        }
+
+        assertThat(readyLatch.await(5, TimeUnit.SECONDS)).isTrue();
+        startLatch.countDown();
+
+        for (Future<?> future : futures) {
+            future.get(10, TimeUnit.SECONDS);
+        }
+        executorService.shutdown();
+        assertThat(executorService.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(failures).isEmpty();
+
+        ProblemStatisticsJpaEntity statistics = problemStatisticsJpaRepository.findById(problemId).orElseThrow();
+        long attemptCount = solveAttemptJpaRepository.findAll().stream()
+                .filter(attempt -> attempt.getProblemId().equals(problemId))
+                .count();
+        long userStatisticsCount = problemUserStatisticsJpaRepository.findAll().stream()
+                .filter(stat -> stat.getProblemId().equals(problemId) && stat.getUserId().equals(userId))
+                .count();
+
+        assertThat(attemptCount).isEqualTo(100L);
+        assertThat(userStatisticsCount).isEqualTo(1L);
+        assertThat(statistics.getSolvedUserCount()).isEqualTo(1L);
+        assertThat(statistics.getCorrectUserCount()).isEqualTo(1L);
+        assertThat(statistics.getCorrectRate()).isNull();
+    }
+
+    private void prepareObjectiveProblem(long problemId, ProblemType problemType) {
+        chapterJpaRepository.save(ChapterJpaEntity.create(1L, "chapter-1"));
+        problemJpaRepository.save(ProblemJpaEntity.create(
+                problemId,
+                1L,
+                "동시성 검증 문제",
+                ProblemAnswerFormat.OBJECTIVE,
+                problemType,
+                "정답은 2번입니다."
+        ));
+        problemChoiceJpaRepository.saveAll(List.of(
+                ProblemChoiceJpaEntity.create(problemId, 1, "선택지 1"),
+                ProblemChoiceJpaEntity.create(problemId, 2, "선택지 2"),
+                ProblemChoiceJpaEntity.create(problemId, 3, "선택지 3"),
+                ProblemChoiceJpaEntity.create(problemId, 4, "선택지 4"),
+                ProblemChoiceJpaEntity.create(problemId, 5, "선택지 5")
+        ));
+        problemAnswerKeyJpaRepository.save(
+                ProblemAnswerKeyJpaEntity.objective(problemId, 2)
+        );
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(problemId, 0L, 0L, null, LocalDateTime.now())
+        );
+    }
+
+    private void await(CountDownLatch latch, ConcurrentLinkedQueue<Throwable> failures) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            failures.add(exception);
+        }
     }
 }
