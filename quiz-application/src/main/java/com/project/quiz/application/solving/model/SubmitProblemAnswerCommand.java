@@ -1,4 +1,4 @@
-package com.project.quiz.application.solving.port.in;
+package com.project.quiz.application.solving.model;
 
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
 

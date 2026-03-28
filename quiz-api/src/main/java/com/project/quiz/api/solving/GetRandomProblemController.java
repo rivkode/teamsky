@@ -1,8 +1,8 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
-import com.project.quiz.application.solving.port.in.GetRandomProblemCommand;
-import com.project.quiz.application.solving.port.in.GetRandomProblemResult;
-import com.project.quiz.application.solving.port.in.GetRandomProblemUseCase;
+import com.project.quiz.application.solving.model.GetRandomProblemCommand;
+import com.project.quiz.application.solving.model.GetRandomProblemResult;
+import com.project.quiz.application.solving.service.GetRandomProblemService;
 import com.project.quiz.api.common.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class GetRandomProblemController {
 
-    private final GetRandomProblemUseCase getRandomProblemUseCase;
+    private final GetRandomProblemService getRandomProblemService;
 
     @Operation(
             summary = "랜덤 미풀이 문제 조회",
@@ -52,7 +52,7 @@ public class GetRandomProblemController {
     public ResponseEntity<GetRandomProblemResponse> getRandomProblem(
             @Valid @RequestBody GetRandomProblemRequest request
     ) {
-        GetRandomProblemResult result = getRandomProblemUseCase.getRandomProblem(
+        GetRandomProblemResult result = getRandomProblemService.getRandomProblem(
                 new GetRandomProblemCommand(request.userId(), request.chapterId())
         );
 

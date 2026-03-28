@@ -1,11 +1,11 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
-import com.project.quiz.application.solving.port.in.GetRandomProblemChoiceResult;
-import com.project.quiz.application.solving.port.in.GetRandomProblemResult;
-import com.project.quiz.application.solving.port.in.GetRandomProblemUseCase;
+import com.project.quiz.application.solving.model.GetRandomProblemChoiceResult;
+import com.project.quiz.application.solving.model.GetRandomProblemResult;
+import com.project.quiz.application.solving.service.GetRandomProblemService;
 import com.project.quiz.api.common.GlobalExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ class GetRandomProblemControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private GetRandomProblemUseCase getRandomProblemUseCase;
+    private GetRandomProblemService getRandomProblemService;
 
     @Test
     @DisplayName("정상 요청이면 랜덤 문제를 반환한다")
@@ -59,7 +59,7 @@ class GetRandomProblemControllerTest {
                 67
         );
 
-        when(getRandomProblemUseCase.getRandomProblem(any())).thenReturn(result);
+        when(getRandomProblemService.getRandomProblem(any())).thenReturn(result);
 
         mockMvc.perform(post("/api/problems/random")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,7 +71,7 @@ class GetRandomProblemControllerTest {
                 .andExpect(jsonPath("$.choices[4]").value("지문5"))
                 .andExpect(jsonPath("$.answerCorrectRate").value(67));
 
-        verify(getRandomProblemUseCase).getRandomProblem(any());
+        verify(getRandomProblemService).getRandomProblem(any());
     }
 
     @Test
@@ -92,7 +92,7 @@ class GetRandomProblemControllerTest {
     void returnNotFoundWhenChapterDoesNotExist() throws Exception {
         GetRandomProblemRequest request = new GetRandomProblemRequest(1L, 999L);
 
-        when(getRandomProblemUseCase.getRandomProblem(any()))
+        when(getRandomProblemService.getRandomProblem(any()))
                 .thenThrow(new ChapterNotFoundException(999L));
 
         mockMvc.perform(post("/api/problems/random")
@@ -108,7 +108,7 @@ class GetRandomProblemControllerTest {
     void returnConflictWhenNoAvailableProblemExists() throws Exception {
         GetRandomProblemRequest request = new GetRandomProblemRequest(1L, 1L);
 
-        when(getRandomProblemUseCase.getRandomProblem(any()))
+        when(getRandomProblemService.getRandomProblem(any()))
                 .thenThrow(new NoAvailableProblemException(1L, 1L));
 
         mockMvc.perform(post("/api/problems/random")

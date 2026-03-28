@@ -1,10 +1,10 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerResult;
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerUseCase;
+import com.project.quiz.application.solving.model.SubmitProblemAnswerResult;
+import com.project.quiz.application.solving.service.SubmitProblemAnswerService;
 import com.project.quiz.api.TestApiApplication;
 import com.project.quiz.api.common.GlobalExceptionHandler;
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
@@ -41,12 +41,12 @@ class SubmitProblemAnswerControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private SubmitProblemAnswerUseCase submitProblemAnswerUseCase;
+    private SubmitProblemAnswerService submitProblemAnswerService;
 
     @Test
     @DisplayName("정상 제출이면 채점 결과를 반환한다")
     void returnGradingResult() throws Exception {
-        when(submitProblemAnswerUseCase.submit(any()))
+        when(submitProblemAnswerService.submit(any()))
                 .thenReturn(new SubmitProblemAnswerResult(1001L, ProblemAnswerFormat.OBJECTIVE, AnswerStatus.PARTIAL, "해설", List.of("1", "2")));
 
         mockMvc.perform(post("/api/problems/submit")
@@ -61,7 +61,7 @@ class SubmitProblemAnswerControllerTest {
     @Test
     @DisplayName("문제를 찾을 수 없으면 404를 반환한다")
     void returnNotFoundWhenProblemMissing() throws Exception {
-        when(submitProblemAnswerUseCase.submit(any()))
+        when(submitProblemAnswerService.submit(any()))
                 .thenThrow(new ProblemNotFoundInChapterException(null, 999L));
 
         mockMvc.perform(post("/api/problems/submit")
@@ -74,7 +74,7 @@ class SubmitProblemAnswerControllerTest {
     @Test
     @DisplayName("답안 형식이 맞지 않으면 409를 반환한다")
     void returnConflictWhenAnswerTypeMismatch() throws Exception {
-        when(submitProblemAnswerUseCase.submit(any()))
+        when(submitProblemAnswerService.submit(any()))
                 .thenThrow(new ProblemAnswerTypeMismatchException(1001L));
 
         mockMvc.perform(post("/api/problems/submit")

@@ -1,8 +1,8 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerCommand;
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerResult;
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerUseCase;
+import com.project.quiz.application.solving.model.SubmitProblemAnswerCommand;
+import com.project.quiz.application.solving.model.SubmitProblemAnswerResult;
+import com.project.quiz.application.solving.service.SubmitProblemAnswerService;
 import com.project.quiz.api.common.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SubmitProblemAnswerController {
 
-    private final SubmitProblemAnswerUseCase submitProblemAnswerUseCase;
+    private final SubmitProblemAnswerService submitProblemAnswerService;
 
     @Operation(summary = "문제 제출", description = "객관식 또는 주관식 답안을 제출하고 즉시 채점 결과와 해설을 반환합니다.")
     @ApiResponses({
@@ -38,7 +38,7 @@ public class SubmitProblemAnswerController {
     })
     @PostMapping("/submit")
     public ResponseEntity<SubmitProblemAnswerResponse> submit(@Valid @RequestBody SubmitProblemAnswerRequest request) {
-        SubmitProblemAnswerResult result = submitProblemAnswerUseCase.submit(
+        SubmitProblemAnswerResult result = submitProblemAnswerService.submit(
                 new SubmitProblemAnswerCommand(
                         request.problemId(),
                         request.userId(),
