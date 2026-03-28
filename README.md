@@ -2,10 +2,12 @@
 
 학습 플랫폼의 핵심 기능인 `단원별 문제 풀이`를 중심으로 구현한 Spring Boot 3.3 / Java 21 멀티 모듈 프로젝트입니다.
 
-현재 문서 기준 구현 범위는 아래 두 API입니다.
+현재 문서 기준 구현 범위는 아래 네 API입니다.
 
 - 랜덤 문제 조회
 - 문제 넘기기
+- 문제 제출
+- 풀었던 문제 상세 조회
 
 ## 1. 프로젝트 목표
 
@@ -50,9 +52,9 @@ HTTP 입출력 계층입니다.
 
 유스케이스 계층입니다.
 
-- use case
-- command/result
-- port in/out
+- service
+- command/result model
+- repository interface
 - transaction boundary
 
 ### `quiz-domain`
@@ -70,8 +72,7 @@ HTTP 입출력 계층입니다.
 
 - JPA entity
 - Spring Data JPA repository
-- application port adapter
-- random picker 구현
+- application repository 구현체
 
 ## 3. 왜 이렇게 나눴는가
 
@@ -160,6 +161,41 @@ HTTP 입출력 계층입니다.
 - `404`: 존재하지 않는 chapter
 - `409`: 더 이상 출제 가능한 문제 없음
 
+시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as ProblemController
+    participant Service as GetRandomProblemService
+    participant ChapterRepo as ChapterRepository
+    participant ProblemRepo as ProblemRepository
+    participant AttemptRepo as SolveAttemptRepository
+    participant DB as MySQL
+
+    User->>Controller: POST /api/problems/random
+    Controller->>Service: getRandomProblem(userId, chapterId)
+    Service->>ChapterRepo: existsById(chapterId)
+    ChapterRepo->>DB: SELECT chapter
+    DB-->>ChapterRepo: exists
+    ChapterRepo-->>Service: true
+    Service->>AttemptRepo: findUserChapterSolvingState(userId, chapterId)
+    AttemptRepo->>DB: SELECT solved/skipped attempts
+    DB-->>AttemptRepo: solving state
+    AttemptRepo-->>Service: UserChapterSolvingState
+    Service->>ProblemRepo: findAllByChapterId(chapterId)
+    ProblemRepo->>DB: SELECT problems + choices + answer keys
+    DB-->>ProblemRepo: problem list
+    ProblemRepo-->>Service: problem list
+    Service->>Service: solved/skip 제외 후 랜덤 선택
+    Service->>AttemptRepo: findCorrectRateByProblemId(problemId)
+    AttemptRepo->>DB: SELECT correct rate summary
+    DB-->>AttemptRepo: solved_count, correct_count
+    AttemptRepo-->>Service: ProblemCorrectRateSummary
+    Service-->>Controller: GetRandomProblemResult
+    Controller-->>User: 200 OK
+```
+
 ## 5.2 문제 넘기기
 
 - `POST /api/problems/skip`
@@ -185,10 +221,180 @@ HTTP 입출력 계층입니다.
 - `404`: 존재하지 않는 chapter 또는 해당 chapter에 속하지 않는 problem
 - `409`: skip 이후 더 이상 출제 가능한 문제 없음
 
+시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as ProblemController
+    participant SkipService as SkipProblemService
+    participant RandomService as GetRandomProblemService
+    participant ChapterRepo as ChapterRepository
+    participant ProblemRepo as ProblemRepository
+    participant AttemptRepo as SolveAttemptRepository
+    participant DB as MySQL
+
+    User->>Controller: POST /api/problems/skip
+    Controller->>SkipService: skipProblem(userId, chapterId, problemId)
+    SkipService->>ChapterRepo: existsById(chapterId)
+    ChapterRepo->>DB: SELECT chapter
+    DB-->>ChapterRepo: exists
+    SkipService->>ProblemRepo: existsByIdAndChapterId(problemId, chapterId)
+    ProblemRepo->>DB: SELECT problem
+    DB-->>ProblemRepo: exists
+    SkipService->>AttemptRepo: saveSkippedProblem(userId, chapterId, problemId)
+    AttemptRepo->>DB: INSERT solve_attempts(SKIPPED)
+    DB-->>AttemptRepo: saved
+    SkipService->>RandomService: getRandomProblem(userId, chapterId)
+    RandomService-->>SkipService: GetRandomProblemResult
+    SkipService-->>Controller: GetRandomProblemResult
+    Controller-->>User: 200 OK
+```
+
+## 5.3 문제 제출
+
+- `POST /api/problems/submit`
+
+요청
+
+```json
+{
+  "problemId": 3,
+  "userId": 1,
+  "answerType": "OBJECTIVE",
+  "selectedChoices": [1, 3]
+}
+```
+
+응답 예시
+
+```json
+{
+  "problemId": 3,
+  "answerType": "OBJECTIVE",
+  "answerStatus": "PARTIAL",
+  "explanation": "정답은 1번과 2번입니다.",
+  "problemAnswers": ["1", "2"]
+}
+```
+
+동작 규칙
+
+- 객관식/주관식 모두 지원
+- 객관식은 복수 정답 가능
+- 정답/부분 정답/오답 판정
+- 제출 즉시 해설과 정답 반환
+- 제출 이력과 사용자 답안 저장
+
+오류 응답
+
+- `400`: 요청 검증 실패
+- `404`: 존재하지 않는 problem
+- `409`: 문제 답안 형식과 제출 형식 불일치
+
+시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as ProblemController
+    participant Service as SubmitProblemAnswerService
+    participant ProblemRepo as ProblemRepository
+    participant AttemptRepo as SolveAttemptRepository
+    participant Domain as Problem
+    participant DB as MySQL
+
+    User->>Controller: POST /api/problems/submit
+    Controller->>Service: submit(problemId, userId, answerType, userAnswer)
+    Service->>ProblemRepo: findById(problemId)
+    ProblemRepo->>DB: SELECT problem + choices + answer keys
+    DB-->>ProblemRepo: problem aggregate
+    ProblemRepo-->>Service: Problem
+    Service->>Domain: grade(submittedAnswer)
+    Domain-->>Service: GradingResult
+    Service->>AttemptRepo: saveSolvedAttempt
+    AttemptRepo->>DB: INSERT solve_attempts(SOLVED)
+    AttemptRepo->>DB: INSERT solve_attempt_answers
+    DB-->>AttemptRepo: saved
+    AttemptRepo-->>Service: done
+    Service-->>Controller: SubmitProblemAnswerResult
+    Controller-->>User: 200 OK
+```
+
+## 5.4 풀었던 문제 상세 조회
+
+- `POST /api/problems/detail`
+
+요청
+
+```json
+{
+  "userId": 1,
+  "problemId": 3
+}
+```
+
+응답 예시
+
+```json
+{
+  "problemId": 3,
+  "answerType": "OBJECTIVE",
+  "answerStatus": "PARTIAL",
+  "explanation": "정답은 1번과 2번입니다.",
+  "problemAnswers": ["1", "2"],
+  "userAnswers": ["1", "3"],
+  "answerCorrectRate": 67
+}
+```
+
+동작 규칙
+
+- 사용자 + 문제 기준 최신 `SOLVED` 이력을 조회
+- 정답, 사용자 답안, 해설, 정답률을 함께 반환
+- 풀이 이력이 없으면 예외 처리
+
+오류 응답
+
+- `400`: 요청 검증 실패
+- `404`: 존재하지 않는 problem 또는 풀이 이력 없음
+
+시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as ProblemController
+    participant Service as GetSolvedProblemDetailService
+    participant ProblemRepo as ProblemRepository
+    participant AttemptRepo as SolveAttemptRepository
+    participant DB as MySQL
+
+    User->>Controller: POST /api/problems/detail
+    Controller->>Service: getDetail(userId, problemId)
+    Service->>ProblemRepo: findById(problemId)
+    ProblemRepo->>DB: SELECT problem + answer keys
+    DB-->>ProblemRepo: problem
+    ProblemRepo-->>Service: Problem
+    Service->>AttemptRepo: findLatestSolvedProblem(userId, problemId)
+    AttemptRepo->>DB: SELECT latest solved attempt
+    AttemptRepo->>DB: SELECT solve_attempt_answers
+    DB-->>AttemptRepo: solved attempt + user answers
+    AttemptRepo-->>Service: SolvedProblem
+    Service->>AttemptRepo: findCorrectRateByProblemId(problemId)
+    AttemptRepo->>DB: SELECT correct rate summary
+    DB-->>AttemptRepo: solved_count, correct_count
+    AttemptRepo-->>Service: ProblemCorrectRateSummary
+    Service-->>Controller: GetSolvedProblemDetailResult
+    Controller-->>User: 200 OK
+```
+
 ## 6. 현재 구현된 핵심 규칙
 
 - 직전 skip 문제는 다음 랜덤 추출 대상에서 제외
 - solved 상태 문제는 랜덤 후보에서 제외
+- 최신 `SOLVED` 이력 기준으로 상세 조회
+- 문제 제출 시 사용자 답안 별도 저장
 - 문제 정답률은 `solve_attempts` 집계를 통해 계산
 - 정답률 공개 규칙은 `ProblemCorrectRatePolicy`가 담당
 
@@ -248,10 +454,12 @@ DB 레벨 FK 제약은 유지하지만, JPA 객체 그래프는 남용하지 않
 - application unit test
   - `GetRandomProblemServiceTest`
   - `SkipProblemServiceTest`
+  - `SubmitProblemAnswerServiceTest`
+  - `GetSolvedProblemDetailServiceTest`
 - api slice test
-  - `@WebMvcTest` 기반 controller 테스트
+  - `@WebMvcTest` 기반 `ProblemControllerTest`
 - infrastructure integration test
-  - `RandomProblemPersistenceAdapterTest`
+  - `SolvingRepositoryIntegrationTest`
 - bootstrap end-to-end test
   - `GetRandomProblemEndToEndTest`
 
