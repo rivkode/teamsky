@@ -1,5 +1,6 @@
 package com.project.quiz.application.solving.service;
 
+import com.project.quiz.application.statistics.service.ProblemCorrectRateService;
 import com.project.quiz.application.solving.exception.SolvedProblemNotFoundException;
 import com.project.quiz.application.solving.model.GetSolvedProblemDetailCommand;
 import com.project.quiz.application.solving.model.GetSolvedProblemDetailResult;
@@ -12,7 +13,6 @@ import com.project.quiz.domain.problem.ProblemType;
 import com.project.quiz.domain.solving.AnswerStatus;
 import com.project.quiz.domain.solving.SolvedProblem;
 import com.project.quiz.domain.solving.SubmittedAnswer;
-import com.project.quiz.domain.statistics.ProblemCorrectRateSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +36,18 @@ class GetSolvedProblemDetailServiceTest {
     @Mock
     private SolveAttemptRepository solveAttemptRepository;
 
+    @Mock
+    private ProblemCorrectRateService problemCorrectRateService;
+
     private GetSolvedProblemDetailService getSolvedProblemDetailService;
 
     @BeforeEach
     void setUp() {
-        getSolvedProblemDetailService = new GetSolvedProblemDetailService(problemRepository, solveAttemptRepository);
+        getSolvedProblemDetailService = new GetSolvedProblemDetailService(
+                problemRepository,
+                solveAttemptRepository,
+                problemCorrectRateService
+        );
     }
 
     @Test
@@ -63,8 +70,7 @@ class GetSolvedProblemDetailServiceTest {
                         AnswerStatus.PARTIAL,
                         new SubmittedAnswer(ProblemAnswerFormat.OBJECTIVE, List.of(1, 3), null)
                 )));
-        when(solveAttemptRepository.findCorrectRateByProblemId(3L))
-                .thenReturn(Optional.of(new ProblemCorrectRateSummary(30L, 20L)));
+        when(problemCorrectRateService.getCorrectRate(3L)).thenReturn(67);
 
         GetSolvedProblemDetailResult result = getSolvedProblemDetailService.getDetail(
                 new GetSolvedProblemDetailCommand(1L, 3L)

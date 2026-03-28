@@ -1,5 +1,6 @@
 package com.project.quiz.application.solving.service;
 
+import com.project.quiz.application.statistics.service.ProblemStatisticsUpdateService;
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
 import com.project.quiz.application.solving.model.SubmitProblemAnswerCommand;
 import com.project.quiz.application.solving.model.SubmitProblemAnswerResult;
@@ -35,11 +36,18 @@ class SubmitProblemAnswerServiceTest {
     @Mock
     private SolveAttemptRepository solveAttemptRepository;
 
+    @Mock
+    private ProblemStatisticsUpdateService problemStatisticsUpdateService;
+
     private SubmitProblemAnswerService submitProblemAnswerService;
 
     @BeforeEach
     void setUp() {
-        submitProblemAnswerService = new SubmitProblemAnswerService(problemRepository, solveAttemptRepository);
+        submitProblemAnswerService = new SubmitProblemAnswerService(
+                problemRepository,
+                solveAttemptRepository,
+                problemStatisticsUpdateService
+        );
     }
 
     @Test
@@ -61,6 +69,7 @@ class SubmitProblemAnswerServiceTest {
         verify(solveAttemptRepository).saveSolvedAttempt(1L, 1L, 100L,
                 new com.project.quiz.domain.solving.SubmittedAnswer(ProblemAnswerFormat.OBJECTIVE, List.of(1, 2), null),
                 AnswerStatus.CORRECT);
+        verify(problemStatisticsUpdateService).recordSolvedProblem(100L, 1L, AnswerStatus.CORRECT);
     }
 
     @Test

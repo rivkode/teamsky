@@ -6,7 +6,6 @@ import com.project.quiz.domain.solving.AnswerStatus;
 import com.project.quiz.domain.solving.SolvedProblem;
 import com.project.quiz.domain.solving.SubmittedAnswer;
 import com.project.quiz.domain.solving.UserChapterSolvingState;
-import com.project.quiz.domain.statistics.ProblemCorrectRateSummary;
 import com.project.quiz.infrastructure.persistence.entity.AttemptStatus;
 import com.project.quiz.infrastructure.persistence.entity.SolveAttemptAnswerJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.SolveAttemptJpaEntity;
@@ -38,15 +37,6 @@ public class SolveAttemptRepositoryImpl implements SolveAttemptRepository {
                 .orElse(null);
 
         return new UserChapterSolvingState(userId, chapterId, new HashSet<>(solvedProblemIds), lastSkippedProblemId);
-    }
-
-    @Override
-    public Optional<ProblemCorrectRateSummary> findCorrectRateByProblemId(Long problemId) {
-        return solveAttemptJpaRepository.findCorrectRateSummaryByProblemId(problemId)
-                .map(projection -> new ProblemCorrectRateSummary(
-                        projection.getSolvedUserCount(),
-                        projection.getCorrectUserCount()
-                ));
     }
 
     @Override

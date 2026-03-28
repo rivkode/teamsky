@@ -1,5 +1,6 @@
 package com.project.quiz.application.solving.service;
 
+import com.project.quiz.application.statistics.service.ProblemCorrectRateService;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
 import com.project.quiz.application.solving.exception.SolvedProblemNotFoundException;
 import com.project.quiz.application.solving.model.GetSolvedProblemDetailCommand;
@@ -9,7 +10,6 @@ import com.project.quiz.application.solving.repository.SolveAttemptRepository;
 import com.project.quiz.domain.problem.Problem;
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
 import com.project.quiz.domain.solving.SolvedProblem;
-import com.project.quiz.domain.statistics.ProblemCorrectRatePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +22,7 @@ public class GetSolvedProblemDetailService {
 
     private final ProblemRepository problemRepository;
     private final SolveAttemptRepository solveAttemptRepository;
-    private final ProblemCorrectRatePolicy problemCorrectRatePolicy = new ProblemCorrectRatePolicy();
+    private final ProblemCorrectRateService problemCorrectRateService;
 
     public GetSolvedProblemDetailResult getDetail(GetSolvedProblemDetailCommand command) {
         Objects.requireNonNull(command, "command must not be null");
@@ -33,9 +33,7 @@ public class GetSolvedProblemDetailService {
         SolvedProblem solvedProblem = solveAttemptRepository.findLatestSolvedProblem(command.userId(), command.problemId())
                 .orElseThrow(() -> new SolvedProblemNotFoundException(command.userId(), command.problemId()));
 
-        Integer correctRate = solveAttemptRepository.findCorrectRateByProblemId(command.problemId())
-                .map(problemCorrectRatePolicy::calculateExposedRate)
-                .orElse(null);
+        Integer correctRate = problemCorrectRateService.getCorrectRate(command.problemId());
 
         return new GetSolvedProblemDetailResult(
                 problem.id(),
