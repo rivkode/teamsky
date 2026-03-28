@@ -1,8 +1,8 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
-import com.project.quiz.application.solving.port.in.GetRandomProblemResult;
-import com.project.quiz.application.solving.port.in.SkipProblemCommand;
-import com.project.quiz.application.solving.port.in.SkipProblemUseCase;
+import com.project.quiz.application.solving.model.GetRandomProblemResult;
+import com.project.quiz.application.solving.model.SkipProblemCommand;
+import com.project.quiz.application.solving.service.SkipProblemService;
 import com.project.quiz.api.common.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SkipProblemController {
 
-    private final SkipProblemUseCase skipProblemUseCase;
+    private final SkipProblemService skipProblemService;
 
     @Operation(
             summary = "문제 넘기기",
@@ -50,7 +50,7 @@ public class SkipProblemController {
     })
     @PostMapping("/skip")
     public ResponseEntity<GetRandomProblemResponse> skipProblem(@Valid @RequestBody SkipProblemRequest request) {
-        GetRandomProblemResult result = skipProblemUseCase.skipProblem(
+        GetRandomProblemResult result = skipProblemService.skipProblem(
                 new SkipProblemCommand(request.userId(), request.chapterId(), request.problemId())
         );
 

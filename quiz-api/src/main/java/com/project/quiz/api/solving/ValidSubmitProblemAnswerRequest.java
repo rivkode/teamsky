@@ -1,4 +1,4 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

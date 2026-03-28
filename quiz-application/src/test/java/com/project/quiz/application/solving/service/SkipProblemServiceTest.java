@@ -2,13 +2,12 @@ package com.project.quiz.application.solving.service;
 
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
-import com.project.quiz.application.solving.port.in.GetRandomProblemCommand;
-import com.project.quiz.application.solving.port.in.GetRandomProblemResult;
-import com.project.quiz.application.solving.port.in.GetRandomProblemUseCase;
-import com.project.quiz.application.solving.port.in.SkipProblemCommand;
-import com.project.quiz.application.solving.port.out.CheckChapterExistsPort;
-import com.project.quiz.application.solving.port.out.CheckProblemInChapterPort;
-import com.project.quiz.application.solving.port.out.SaveSkippedProblemPort;
+import com.project.quiz.application.solving.model.GetRandomProblemCommand;
+import com.project.quiz.application.solving.model.GetRandomProblemResult;
+import com.project.quiz.application.solving.model.SkipProblemCommand;
+import com.project.quiz.application.solving.repository.ChapterRepository;
+import com.project.quiz.application.solving.repository.ProblemRepository;
+import com.project.quiz.application.solving.repository.SolveAttemptRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,26 +25,26 @@ import static org.mockito.Mockito.when;
 class SkipProblemServiceTest {
 
     @Mock
-    private CheckChapterExistsPort checkChapterExistsPort;
+    private ChapterRepository chapterRepository;
 
     @Mock
-    private CheckProblemInChapterPort checkProblemInChapterPort;
+    private ProblemRepository problemRepository;
 
     @Mock
-    private SaveSkippedProblemPort saveSkippedProblemPort;
+    private SolveAttemptRepository solveAttemptRepository;
 
     @Mock
-    private GetRandomProblemUseCase getRandomProblemUseCase;
+    private GetRandomProblemService getRandomProblemService;
 
     private SkipProblemService skipProblemService;
 
     @BeforeEach
     void setUp() {
         skipProblemService = new SkipProblemService(
-                checkChapterExistsPort,
-                checkProblemInChapterPort,
-                saveSkippedProblemPort,
-                getRandomProblemUseCase
+                chapterRepository,
+                problemRepository,
+                solveAttemptRepository,
+                getRandomProblemService
         );
     }
 
@@ -53,7 +52,7 @@ class SkipProblemServiceTest {
     void chapterDoesNotExistThenThrowException() {
         SkipProblemCommand command = new SkipProblemCommand(1L, 99L, 100L);
 
-        when(checkChapterExistsPort.existsById(99L)).thenReturn(false);
+        when(chapterRepository.existsById(99L)).thenReturn(false);
 
         assertThatThrownBy(() -> skipProblemService.skipProblem(command))
                 .isInstanceOf(ChapterNotFoundException.class);
@@ -63,8 +62,8 @@ class SkipProblemServiceTest {
     void problemDoesNotBelongToChapterThenThrowException() {
         SkipProblemCommand command = new SkipProblemCommand(1L, 1L, 100L);
 
-        when(checkChapterExistsPort.existsById(1L)).thenReturn(true);
-        when(checkProblemInChapterPort.existsByIdAndChapterId(100L, 1L)).thenReturn(false);
+        when(chapterRepository.existsById(1L)).thenReturn(true);
+        when(problemRepository.existsByIdAndChapterId(100L, 1L)).thenReturn(false);
 
         assertThatThrownBy(() -> skipProblemService.skipProblem(command))
                 .isInstanceOf(ProblemNotFoundInChapterException.class);
@@ -75,14 +74,14 @@ class SkipProblemServiceTest {
         SkipProblemCommand command = new SkipProblemCommand(1L, 1L, 100L);
         GetRandomProblemResult nextProblem = new GetRandomProblemResult(101L, "next", List.of(), null);
 
-        when(checkChapterExistsPort.existsById(1L)).thenReturn(true);
-        when(checkProblemInChapterPort.existsByIdAndChapterId(100L, 1L)).thenReturn(true);
-        when(getRandomProblemUseCase.getRandomProblem(new GetRandomProblemCommand(1L, 1L))).thenReturn(nextProblem);
+        when(chapterRepository.existsById(1L)).thenReturn(true);
+        when(problemRepository.existsByIdAndChapterId(100L, 1L)).thenReturn(true);
+        when(getRandomProblemService.getRandomProblem(new GetRandomProblemCommand(1L, 1L))).thenReturn(nextProblem);
 
         GetRandomProblemResult result = skipProblemService.skipProblem(command);
 
-        verify(saveSkippedProblemPort).saveSkippedProblem(1L, 1L, 100L);
-        verify(getRandomProblemUseCase).getRandomProblem(new GetRandomProblemCommand(1L, 1L));
+        verify(solveAttemptRepository).saveSkippedProblem(1L, 1L, 100L);
+        verify(getRandomProblemService).getRandomProblem(new GetRandomProblemCommand(1L, 1L));
         assertThat(result.problemId()).isEqualTo(101L);
     }
 }

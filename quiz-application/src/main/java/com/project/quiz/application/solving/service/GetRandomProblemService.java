@@ -1,16 +1,13 @@
 package com.project.quiz.application.solving.service;
 
-import com.project.quiz.application.solving.port.in.GetRandomProblemChoiceResult;
-import com.project.quiz.application.solving.port.in.GetRandomProblemCommand;
-import com.project.quiz.application.solving.port.in.GetRandomProblemResult;
-import com.project.quiz.application.solving.port.in.GetRandomProblemUseCase;
-import com.project.quiz.application.solving.port.out.CheckChapterExistsPort;
-import com.project.quiz.application.solving.port.out.LoadChapterProblemsPort;
-import com.project.quiz.application.solving.port.out.LoadProblemCorrectRatePort;
-import com.project.quiz.application.solving.port.out.LoadUserChapterSolvingStatePort;
-import com.project.quiz.application.solving.port.out.PickRandomProblemPort;
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
+import com.project.quiz.application.solving.model.GetRandomProblemChoiceResult;
+import com.project.quiz.application.solving.model.GetRandomProblemCommand;
+import com.project.quiz.application.solving.model.GetRandomProblemResult;
+import com.project.quiz.application.solving.repository.ChapterRepository;
+import com.project.quiz.application.solving.repository.ProblemRepository;
+import com.project.quiz.application.solving.repository.SolveAttemptRepository;
 import com.project.quiz.domain.problem.Problem;
 import com.project.quiz.domain.problem.ProblemChoice;
 import com.project.quiz.domain.solving.UserChapterSolvingState;
@@ -20,30 +17,28 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
-public class GetRandomProblemService implements GetRandomProblemUseCase {
+public class GetRandomProblemService {
 
-    private final CheckChapterExistsPort checkChapterExistsPort;
-    private final LoadChapterProblemsPort loadChapterProblemsPort;
-    private final LoadUserChapterSolvingStatePort loadUserChapterSolvingStatePort;
-    private final LoadProblemCorrectRatePort loadProblemCorrectRatePort;
-    private final PickRandomProblemPort pickRandomProblemPort;
+    private final ChapterRepository chapterRepository;
+    private final ProblemRepository problemRepository;
+    private final SolveAttemptRepository solveAttemptRepository;
     private final ProblemCorrectRatePolicy problemCorrectRatePolicy = new ProblemCorrectRatePolicy();
 
-    @Override
     public GetRandomProblemResult getRandomProblem(GetRandomProblemCommand command) {
         Objects.requireNonNull(command, "command must not be null");
 
-        if (!checkChapterExistsPort.existsById(command.chapterId())) {
+        if (!chapterRepository.existsById(command.chapterId())) {
             throw new ChapterNotFoundException(command.chapterId());
         }
 
         UserChapterSolvingState solvingState =
-                loadUserChapterSolvingStatePort.load(command.userId(), command.chapterId());
+                solveAttemptRepository.findUserChapterSolvingState(command.userId(), command.chapterId());
 
-        List<Problem> selectableProblems = loadChapterProblemsPort.loadByChapterId(command.chapterId()).stream()
+        List<Problem> selectableProblems = problemRepository.findAllByChapterId(command.chapterId()).stream()
                 .filter(solvingState::isSelectable)
                 .toList();
 
@@ -51,8 +46,8 @@ public class GetRandomProblemService implements GetRandomProblemUseCase {
             throw new NoAvailableProblemException(command.userId(), command.chapterId());
         }
 
-        Problem selectedProblem = pickRandomProblemPort.pick(selectableProblems);
-        Integer correctRate = loadProblemCorrectRatePort.loadByProblemId(selectedProblem.id())
+        Problem selectedProblem = pickRandomProblem(selectableProblems);
+        Integer correctRate = solveAttemptRepository.findCorrectRateByProblemId(selectedProblem.id())
                 .map(problemCorrectRatePolicy::calculateExposedRate)
                 .orElse(null);
 
@@ -68,5 +63,12 @@ public class GetRandomProblemService implements GetRandomProblemUseCase {
 
     private GetRandomProblemChoiceResult toChoiceResult(ProblemChoice choice) {
         return new GetRandomProblemChoiceResult(choice.sequence(), choice.content());
+    }
+
+    private Problem pickRandomProblem(List<Problem> selectableProblems) {
+        if (selectableProblems.size() == 1) {
+            return selectableProblems.get(0);
+        }
+        return selectableProblems.get(ThreadLocalRandom.current().nextInt(selectableProblems.size()));
     }
 }

@@ -1,11 +1,10 @@
-package com.project.quiz.api.solving;
+package com.project.quiz.api.problem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
 import com.project.quiz.application.solving.exception.ProblemNotFoundInChapterException;
-import com.project.quiz.application.solving.port.in.GetRandomProblemResult;
-import com.project.quiz.application.solving.port.in.SkipProblemUseCase;
+import com.project.quiz.application.solving.model.GetRandomProblemResult;
+import com.project.quiz.application.solving.service.SkipProblemService;
 import com.project.quiz.api.TestApiApplication;
 import com.project.quiz.api.common.GlobalExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
@@ -40,12 +39,12 @@ class SkipProblemControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private SkipProblemUseCase skipProblemUseCase;
+    private SkipProblemService skipProblemService;
 
     @Test
     @DisplayName("정상 요청이면 건너뛴 뒤 다음 문제를 반환한다")
     void returnNextRandomProblem() throws Exception {
-        when(skipProblemUseCase.skipProblem(any()))
+        when(skipProblemService.skipProblem(any()))
                 .thenReturn(new GetRandomProblemResult(1002L, "다음 문제", List.of(), null));
 
         mockMvc.perform(post("/api/problems/skip")
@@ -69,7 +68,7 @@ class SkipProblemControllerTest {
     @Test
     @DisplayName("문제가 단원에 없으면 404를 반환한다")
     void returnNotFoundWhenProblemNotInChapter() throws Exception {
-        when(skipProblemUseCase.skipProblem(any()))
+        when(skipProblemService.skipProblem(any()))
                 .thenThrow(new ProblemNotFoundInChapterException(1L, 1001L));
 
         mockMvc.perform(post("/api/problems/skip")
@@ -82,7 +81,7 @@ class SkipProblemControllerTest {
     @Test
     @DisplayName("출제 가능한 문제가 없으면 409를 반환한다")
     void returnConflictWhenNoAvailableProblemExists() throws Exception {
-        when(skipProblemUseCase.skipProblem(any()))
+        when(skipProblemService.skipProblem(any()))
                 .thenThrow(new NoAvailableProblemException(1L, 1L));
 
         mockMvc.perform(post("/api/problems/skip")

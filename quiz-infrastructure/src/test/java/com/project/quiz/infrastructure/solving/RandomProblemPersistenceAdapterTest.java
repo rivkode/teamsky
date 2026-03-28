@@ -5,6 +5,7 @@ import com.project.quiz.domain.problem.ProblemAnswerKey;
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
 import com.project.quiz.domain.problem.ProblemType;
 import com.project.quiz.domain.solving.AnswerStatus;
+import com.project.quiz.domain.solving.SolvedProblem;
 import com.project.quiz.domain.solving.SubmittedAnswer;
 import com.project.quiz.domain.solving.UserChapterSolvingState;
 import com.project.quiz.domain.statistics.ProblemCorrectRateSummary;
@@ -39,12 +40,18 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import({RandomProblemPersistenceAdapter.class, ProblemMapper.class})
+@Import({ChapterRepositoryImpl.class, ProblemRepositoryImpl.class, SolveAttemptRepositoryImpl.class, ProblemMapper.class})
 @ContextConfiguration(classes = TestInfrastructureApplication.class)
-class RandomProblemPersistenceAdapterTest {
+class SolvingRepositoryIntegrationTest {
 
     @Autowired
-    private RandomProblemPersistenceAdapter adapter;
+    private ChapterRepositoryImpl chapterRepository;
+
+    @Autowired
+    private ProblemRepositoryImpl problemRepository;
+
+    @Autowired
+    private SolveAttemptRepositoryImpl solveAttemptRepository;
 
     @Autowired
     private ChapterJpaRepository chapterJpaRepository;
@@ -94,7 +101,7 @@ class RandomProblemPersistenceAdapterTest {
                 ProblemAnswerKeyJpaEntity.objective(101L, 2)
         ));
 
-        List<Problem> problems = adapter.loadByChapterId(1L);
+        List<Problem> problems = problemRepository.findAllByChapterId(1L);
 
         assertThat(problems).hasSize(2);
         assertThat(problems.get(0).id()).isEqualTo(100L);
@@ -115,7 +122,7 @@ class RandomProblemPersistenceAdapterTest {
                 SolveAttemptJpaEntity.create(1L, 1L, 102L, AttemptStatus.SKIPPED, null, null, LocalDateTime.now().minusMinutes(1))
         ));
 
-        UserChapterSolvingState state = adapter.load(1L, 1L);
+        UserChapterSolvingState state = solveAttemptRepository.findUserChapterSolvingState(1L, 1L);
 
         assertThat(state.userId()).isEqualTo(1L);
         assertThat(state.chapterId()).isEqualTo(1L);
@@ -133,7 +140,7 @@ class RandomProblemPersistenceAdapterTest {
                 SolveAttemptJpaEntity.create(3L, 1L, 100L, AttemptStatus.SKIPPED, null, null, LocalDateTime.now())
         ));
 
-        Optional<ProblemCorrectRateSummary> summary = adapter.loadByProblemId(100L);
+        Optional<ProblemCorrectRateSummary> summary = solveAttemptRepository.findCorrectRateByProblemId(100L);
 
         assertThat(summary).isPresent();
         assertThat(summary.get().solvedUserCount()).isEqualTo(3L);
@@ -145,8 +152,8 @@ class RandomProblemPersistenceAdapterTest {
     void existsByChapterId() {
         chapterJpaRepository.save(ChapterJpaEntity.create(1L, "chapter-1"));
 
-        assertThat(adapter.existsById(1L)).isTrue();
-        assertThat(adapter.existsById(99L)).isFalse();
+        assertThat(chapterRepository.existsById(1L)).isTrue();
+        assertThat(chapterRepository.existsById(99L)).isFalse();
     }
 
     @Test
@@ -161,7 +168,7 @@ class RandomProblemPersistenceAdapterTest {
                 ProblemAnswerKeyJpaEntity.subjective(200L, "singleton")
         ));
 
-        Optional<Problem> loaded = adapter.loadById(200L);
+        Optional<Problem> loaded = problemRepository.findById(200L);
 
         assertThat(loaded).isPresent();
         assertThat(loaded.get().answerFormat()).isEqualTo(ProblemAnswerFormat.SUBJECTIVE);
@@ -172,7 +179,7 @@ class RandomProblemPersistenceAdapterTest {
     @Test
     @DisplayName("객관식 제출을 저장하면 풀이 이력과 선택 답안이 함께 저장된다")
     void saveObjectiveSolvedAttempt() {
-        adapter.saveSolvedAttempt(
+        solveAttemptRepository.saveSolvedAttempt(
                 1L,
                 1L,
                 300L,
@@ -200,7 +207,7 @@ class RandomProblemPersistenceAdapterTest {
     @Test
     @DisplayName("주관식 제출을 저장하면 텍스트 답안이 함께 저장된다")
     void saveSubjectiveSolvedAttempt() {
-        adapter.saveSolvedAttempt(
+        solveAttemptRepository.saveSolvedAttempt(
                 2L,
                 2L,
                 400L,
@@ -217,5 +224,30 @@ class RandomProblemPersistenceAdapterTest {
         assertThat(answers).hasSize(1);
         assertThat(answers.get(0).getAnswerFormat()).isEqualTo(ProblemAnswerFormat.SUBJECTIVE);
         assertThat(answers.get(0).getSubjectiveAnswer()).isEqualTo("싱글톤");
+    }
+
+    @Test
+    @DisplayName("사용자와 문제 기준 최신 풀이 상세를 조회한다")
+    void findLatestSolvedProblem() {
+        SolveAttemptJpaEntity olderAttempt = solveAttemptJpaRepository.save(
+                SolveAttemptJpaEntity.create(1L, 1L, 500L, AttemptStatus.SOLVED, false, AnswerStatus.INCORRECT, LocalDateTime.now().minusMinutes(2))
+        );
+        solveAttemptAnswerJpaRepository.save(
+                SolveAttemptAnswerJpaEntity.objective(olderAttempt.getId(), 3)
+        );
+
+        SolveAttemptJpaEntity latestAttempt = solveAttemptJpaRepository.save(
+                SolveAttemptJpaEntity.create(1L, 1L, 500L, AttemptStatus.SOLVED, false, AnswerStatus.PARTIAL, LocalDateTime.now().minusMinutes(1))
+        );
+        solveAttemptAnswerJpaRepository.saveAll(List.of(
+                SolveAttemptAnswerJpaEntity.objective(latestAttempt.getId(), 1),
+                SolveAttemptAnswerJpaEntity.objective(latestAttempt.getId(), 3)
+        ));
+
+        Optional<SolvedProblem> solvedProblem = solveAttemptRepository.findLatestSolvedProblem(1L, 500L);
+
+        assertThat(solvedProblem).isPresent();
+        assertThat(solvedProblem.get().answerStatus()).isEqualTo(AnswerStatus.PARTIAL);
+        assertThat(solvedProblem.get().userAnswer().selectedChoices()).containsExactly(1, 3);
     }
 }

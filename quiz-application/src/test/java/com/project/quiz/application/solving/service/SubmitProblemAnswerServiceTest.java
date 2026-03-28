@@ -1,10 +1,10 @@
 package com.project.quiz.application.solving.service;
 
 import com.project.quiz.application.solving.exception.ProblemAnswerTypeMismatchException;
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerCommand;
-import com.project.quiz.application.solving.port.in.SubmitProblemAnswerResult;
-import com.project.quiz.application.solving.port.out.LoadProblemDetailPort;
-import com.project.quiz.application.solving.port.out.SaveSolvedAttemptPort;
+import com.project.quiz.application.solving.model.SubmitProblemAnswerCommand;
+import com.project.quiz.application.solving.model.SubmitProblemAnswerResult;
+import com.project.quiz.application.solving.repository.ProblemRepository;
+import com.project.quiz.application.solving.repository.SolveAttemptRepository;
 import com.project.quiz.domain.problem.Problem;
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
 import com.project.quiz.domain.problem.ProblemAnswerKey;
@@ -30,16 +30,16 @@ import static org.mockito.Mockito.when;
 class SubmitProblemAnswerServiceTest {
 
     @Mock
-    private LoadProblemDetailPort loadProblemDetailPort;
+    private ProblemRepository problemRepository;
 
     @Mock
-    private SaveSolvedAttemptPort saveSolvedAttemptPort;
+    private SolveAttemptRepository solveAttemptRepository;
 
     private SubmitProblemAnswerService submitProblemAnswerService;
 
     @BeforeEach
     void setUp() {
-        submitProblemAnswerService = new SubmitProblemAnswerService(loadProblemDetailPort, saveSolvedAttemptPort);
+        submitProblemAnswerService = new SubmitProblemAnswerService(problemRepository, solveAttemptRepository);
     }
 
     @Test
@@ -50,7 +50,7 @@ class SubmitProblemAnswerServiceTest {
                 new ProblemAnswerKey(Set.of(1, 2), List.of()),
                 "해설"
         );
-        when(loadProblemDetailPort.loadById(100L)).thenReturn(Optional.of(problem));
+        when(problemRepository.findById(100L)).thenReturn(Optional.of(problem));
 
         SubmitProblemAnswerResult result = submitProblemAnswerService.submit(
                 new SubmitProblemAnswerCommand(100L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 2), null)
@@ -58,7 +58,7 @@ class SubmitProblemAnswerServiceTest {
 
         assertThat(result.answerStatus()).isEqualTo(AnswerStatus.CORRECT);
         assertThat(result.problemAnswers()).containsExactly("1", "2");
-        verify(saveSolvedAttemptPort).saveSolvedAttempt(1L, 1L, 100L,
+        verify(solveAttemptRepository).saveSolvedAttempt(1L, 1L, 100L,
                 new com.project.quiz.domain.solving.SubmittedAnswer(ProblemAnswerFormat.OBJECTIVE, List.of(1, 2), null),
                 AnswerStatus.CORRECT);
     }
@@ -69,7 +69,7 @@ class SubmitProblemAnswerServiceTest {
                 100L, 1L, "problem", ProblemAnswerFormat.OBJECTIVE, ProblemType.MULTIPLE_ANSWER,
                 List.of(), new ProblemAnswerKey(Set.of(1, 2), List.of()), "해설"
         );
-        when(loadProblemDetailPort.loadById(100L)).thenReturn(Optional.of(problem));
+        when(problemRepository.findById(100L)).thenReturn(Optional.of(problem));
 
         SubmitProblemAnswerResult result = submitProblemAnswerService.submit(
                 new SubmitProblemAnswerCommand(100L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 3), null)
@@ -84,7 +84,7 @@ class SubmitProblemAnswerServiceTest {
                 200L, 1L, "problem", ProblemAnswerFormat.SUBJECTIVE, ProblemType.SINGLE_ANSWER,
                 List.of(), new ProblemAnswerKey(Set.of(), List.of("싱글톤", "singleton")), "해설"
         );
-        when(loadProblemDetailPort.loadById(200L)).thenReturn(Optional.of(problem));
+        when(problemRepository.findById(200L)).thenReturn(Optional.of(problem));
 
         SubmitProblemAnswerResult result = submitProblemAnswerService.submit(
                 new SubmitProblemAnswerCommand(200L, 1L, ProblemAnswerFormat.SUBJECTIVE, null, " singleton ")
@@ -99,7 +99,7 @@ class SubmitProblemAnswerServiceTest {
                 200L, 1L, "problem", ProblemAnswerFormat.SUBJECTIVE, ProblemType.SINGLE_ANSWER,
                 List.of(), new ProblemAnswerKey(Set.of(), List.of("싱글톤")), "해설"
         );
-        when(loadProblemDetailPort.loadById(200L)).thenReturn(Optional.of(problem));
+        when(problemRepository.findById(200L)).thenReturn(Optional.of(problem));
 
         assertThatThrownBy(() -> submitProblemAnswerService.submit(
                 new SubmitProblemAnswerCommand(200L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), null)
