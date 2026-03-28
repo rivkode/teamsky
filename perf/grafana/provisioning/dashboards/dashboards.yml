@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: teamsky-k6
+    orgId: 1
+    folder: Teamsky
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

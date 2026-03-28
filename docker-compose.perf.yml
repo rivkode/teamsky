@@ -1,0 +1,50 @@
+services:
+  k6:
+    image: grafana/k6:latest
+    container_name: teamsky-k6
+    working_dir: /work
+    volumes:
+      - .:/work
+    environment:
+      BASE_URL: http://app:8080
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+    depends_on:
+      - prometheus
+    networks:
+      - teamsky-network
+
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: teamsky-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./perf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+    networks:
+      - teamsky-network
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: teamsky-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./perf/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - teamsky-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
