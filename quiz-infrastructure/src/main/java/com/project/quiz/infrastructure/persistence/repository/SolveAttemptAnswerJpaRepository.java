@@ -4,4 +4,6 @@ import com.project.quiz.infrastructure.persistence.entity.SolveAttemptAnswerJpaE
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SolveAttemptAnswerJpaRepository extends JpaRepository<SolveAttemptAnswerJpaEntity, Long> {
+
+    java.util.List<SolveAttemptAnswerJpaEntity> findAllBySolveAttemptIdOrderByIdAsc(Long solveAttemptId);
 }

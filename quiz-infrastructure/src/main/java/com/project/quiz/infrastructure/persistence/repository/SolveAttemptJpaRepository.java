@@ -26,6 +26,12 @@ public interface SolveAttemptJpaRepository extends JpaRepository<SolveAttemptJpa
             AttemptStatus status
     );
 
+    Optional<SolveAttemptJpaEntity> findTopByUserIdAndProblemIdAndStatusOrderByIdDesc(
+            Long userId,
+            Long problemId,
+            AttemptStatus status
+    );
+
     @Query("""
             select
                 count(distinct sa.userId) as solvedUserCount,
