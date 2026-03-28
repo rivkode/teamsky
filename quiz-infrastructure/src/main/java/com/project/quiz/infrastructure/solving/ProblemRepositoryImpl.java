@@ -63,4 +63,11 @@ public class ProblemRepositoryImpl implements ProblemRepository {
                         problemAnswerKeyJpaRepository.findAllByProblemIdOrderByIdAsc(problemId)
                 ));
     }
+
+    @Override
+    @Transactional
+    public void lockById(Long problemId) {
+        problemJpaRepository.findByIdForUpdate(problemId)
+                .orElseThrow(() -> new IllegalArgumentException("Problem not found. problemId=" + problemId));
+    }
 }

@@ -17,3 +17,8 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /api-docs
+
+quiz:
+  statistics:
+    batch:
+      enabled: false

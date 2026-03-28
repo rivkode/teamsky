@@ -1,5 +1,6 @@
 package com.project.quiz.application.solving.service;
 
+import com.project.quiz.application.statistics.service.ProblemCorrectRateService;
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
 import com.project.quiz.application.solving.model.GetRandomProblemChoiceResult;
@@ -11,7 +12,6 @@ import com.project.quiz.application.solving.repository.SolveAttemptRepository;
 import com.project.quiz.domain.problem.Problem;
 import com.project.quiz.domain.problem.ProblemChoice;
 import com.project.quiz.domain.solving.UserChapterSolvingState;
-import com.project.quiz.domain.statistics.ProblemCorrectRatePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +26,7 @@ public class GetRandomProblemService {
     private final ChapterRepository chapterRepository;
     private final ProblemRepository problemRepository;
     private final SolveAttemptRepository solveAttemptRepository;
-    private final ProblemCorrectRatePolicy problemCorrectRatePolicy = new ProblemCorrectRatePolicy();
+    private final ProblemCorrectRateService problemCorrectRateService;
 
     public GetRandomProblemResult getRandomProblem(GetRandomProblemCommand command) {
         Objects.requireNonNull(command, "command must not be null");
@@ -47,9 +47,7 @@ public class GetRandomProblemService {
         }
 
         Problem selectedProblem = pickRandomProblem(selectableProblems);
-        Integer correctRate = solveAttemptRepository.findCorrectRateByProblemId(selectedProblem.id())
-                .map(problemCorrectRatePolicy::calculateExposedRate)
-                .orElse(null);
+        Integer correctRate = problemCorrectRateService.getCorrectRate(selectedProblem.id());
 
         return new GetRandomProblemResult(
                 selectedProblem.id(),

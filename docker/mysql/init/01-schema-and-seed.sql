@@ -42,6 +42,30 @@ CREATE TABLE IF NOT EXISTS solve_attempts (
     CONSTRAINT fk_solve_attempts_problem FOREIGN KEY (problem_id) REFERENCES problems (id)
 );
 
+CREATE TABLE IF NOT EXISTS problem_statistics (
+    problem_id BIGINT NOT NULL PRIMARY KEY,
+    solved_user_count BIGINT NOT NULL,
+    correct_user_count BIGINT NOT NULL,
+    correct_rate INT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL,
+    CONSTRAINT fk_problem_statistics_problem FOREIGN KEY (problem_id) REFERENCES problems (id)
+);
+
+CREATE TABLE IF NOT EXISTS problem_user_statistics (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    problem_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    latest_answer_status VARCHAR(20) NOT NULL,
+    is_correct BIT NOT NULL,
+    counted_as_solved BIT NOT NULL,
+    counted_as_correct BIT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    CONSTRAINT uk_problem_user_statistics UNIQUE (problem_id, user_id),
+    CONSTRAINT fk_problem_user_statistics_problem FOREIGN KEY (problem_id) REFERENCES problems (id)
+);
+
 CREATE TABLE IF NOT EXISTS problem_answer_keys (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     problem_id BIGINT NOT NULL,
@@ -180,3 +204,67 @@ INSERT INTO solve_attempts (user_id, chapter_id, problem_id, status, is_correct,
     (9, 1, 1004, 'SOLVED', b'0', 'INCORRECT', '2026-03-26 11:07:00'),
     (10, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:08:00'),
     (11, 1, 1004, 'SOLVED', b'1', 'CORRECT', '2026-03-26 11:09:00');
+
+INSERT INTO problem_statistics (problem_id, solved_user_count, correct_user_count, correct_rate, version, updated_at) VALUES
+    (1001, 31, 21, 68, 0, '2026-03-26 09:30:00'),
+    (1002, 0, 0, NULL, 0, '2026-03-26 00:00:00'),
+    (1003, 1, 1, NULL, 0, '2026-03-26 10:00:00'),
+    (1004, 10, 7, NULL, 0, '2026-03-26 11:09:00'),
+    (2001, 0, 0, NULL, 0, '2026-03-26 00:00:00'),
+    (2002, 0, 0, NULL, 0, '2026-03-26 00:00:00'),
+    (2003, 0, 0, NULL, 0, '2026-03-26 00:00:00')
+ON DUPLICATE KEY UPDATE
+    solved_user_count = VALUES(solved_user_count),
+    correct_user_count = VALUES(correct_user_count),
+    correct_rate = VALUES(correct_rate),
+    updated_at = VALUES(updated_at);
+
+INSERT INTO problem_user_statistics (problem_id, user_id, latest_answer_status, is_correct, counted_as_solved, counted_as_correct, created_at, updated_at) VALUES
+    (1003, 1, 'CORRECT', b'1', b'1', b'1', '2026-03-26 10:00:00', '2026-03-26 10:00:00'),
+    (1001, 2, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:00:00', '2026-03-26 09:00:00'),
+    (1001, 3, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:01:00', '2026-03-26 09:01:00'),
+    (1001, 4, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:02:00', '2026-03-26 09:02:00'),
+    (1001, 5, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:03:00', '2026-03-26 09:03:00'),
+    (1001, 6, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:04:00', '2026-03-26 09:04:00'),
+    (1001, 7, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:05:00', '2026-03-26 09:05:00'),
+    (1001, 8, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:06:00', '2026-03-26 09:06:00'),
+    (1001, 9, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:07:00', '2026-03-26 09:07:00'),
+    (1001, 10, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:08:00', '2026-03-26 09:08:00'),
+    (1001, 11, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:09:00', '2026-03-26 09:09:00'),
+    (1001, 12, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:10:00', '2026-03-26 09:10:00'),
+    (1001, 13, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:11:00', '2026-03-26 09:11:00'),
+    (1001, 14, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:12:00', '2026-03-26 09:12:00'),
+    (1001, 15, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:13:00', '2026-03-26 09:13:00'),
+    (1001, 16, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:14:00', '2026-03-26 09:14:00'),
+    (1001, 17, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:15:00', '2026-03-26 09:15:00'),
+    (1001, 18, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:16:00', '2026-03-26 09:16:00'),
+    (1001, 19, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:17:00', '2026-03-26 09:17:00'),
+    (1001, 20, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:18:00', '2026-03-26 09:18:00'),
+    (1001, 21, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:19:00', '2026-03-26 09:19:00'),
+    (1001, 22, 'CORRECT', b'1', b'1', b'1', '2026-03-26 09:20:00', '2026-03-26 09:20:00'),
+    (1001, 23, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:21:00', '2026-03-26 09:21:00'),
+    (1001, 24, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:22:00', '2026-03-26 09:22:00'),
+    (1001, 25, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:23:00', '2026-03-26 09:23:00'),
+    (1001, 26, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:24:00', '2026-03-26 09:24:00'),
+    (1001, 27, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:25:00', '2026-03-26 09:25:00'),
+    (1001, 28, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:26:00', '2026-03-26 09:26:00'),
+    (1001, 29, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:27:00', '2026-03-26 09:27:00'),
+    (1001, 30, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:28:00', '2026-03-26 09:28:00'),
+    (1001, 31, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:29:00', '2026-03-26 09:29:00'),
+    (1001, 32, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 09:30:00', '2026-03-26 09:30:00'),
+    (1004, 2, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:00:00', '2026-03-26 11:00:00'),
+    (1004, 3, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 11:01:00', '2026-03-26 11:01:00'),
+    (1004, 4, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:02:00', '2026-03-26 11:02:00'),
+    (1004, 5, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:03:00', '2026-03-26 11:03:00'),
+    (1004, 6, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 11:04:00', '2026-03-26 11:04:00'),
+    (1004, 7, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:05:00', '2026-03-26 11:05:00'),
+    (1004, 8, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:06:00', '2026-03-26 11:06:00'),
+    (1004, 9, 'INCORRECT', b'0', b'1', b'0', '2026-03-26 11:07:00', '2026-03-26 11:07:00'),
+    (1004, 10, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:08:00', '2026-03-26 11:08:00'),
+    (1004, 11, 'CORRECT', b'1', b'1', b'1', '2026-03-26 11:09:00', '2026-03-26 11:09:00')
+ON DUPLICATE KEY UPDATE
+    latest_answer_status = VALUES(latest_answer_status),
+    is_correct = VALUES(is_correct),
+    counted_as_solved = VALUES(counted_as_solved),
+    counted_as_correct = VALUES(counted_as_correct),
+    updated_at = VALUES(updated_at);
