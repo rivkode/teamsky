@@ -1,5 +1,6 @@
 package com.project.quiz.infrastructure.solving;
 
+import com.project.quiz.application.statistics.repository.ProblemCorrectRateQueryRepository;
 import com.project.quiz.domain.problem.Problem;
 import com.project.quiz.domain.problem.ProblemAnswerKey;
 import com.project.quiz.domain.problem.ProblemAnswerFormat;
@@ -15,15 +16,21 @@ import com.project.quiz.infrastructure.persistence.entity.ChapterJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.ProblemAnswerKeyJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.ProblemChoiceJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.ProblemJpaEntity;
+import com.project.quiz.infrastructure.persistence.entity.ProblemStatisticsJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.SolveAttemptAnswerJpaEntity;
 import com.project.quiz.infrastructure.persistence.entity.SolveAttemptJpaEntity;
+import com.project.quiz.infrastructure.persistence.entity.ProblemUserStatisticsJpaEntity;
 import com.project.quiz.infrastructure.persistence.mapper.ProblemMapper;
 import com.project.quiz.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ProblemAnswerKeyJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ProblemChoiceJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ProblemJpaRepository;
+import com.project.quiz.infrastructure.persistence.repository.ProblemStatisticsJpaRepository;
+import com.project.quiz.infrastructure.persistence.repository.ProblemUserStatisticsJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.SolveAttemptAnswerJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.SolveAttemptJpaRepository;
+import com.project.quiz.infrastructure.statistics.ProblemCorrectRateQueryRepositoryImpl;
+import com.project.quiz.infrastructure.statistics.ProblemStatisticsCommandRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +47,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import({ChapterRepositoryImpl.class, ProblemRepositoryImpl.class, SolveAttemptRepositoryImpl.class, ProblemMapper.class})
+@Import({ChapterRepositoryImpl.class, ProblemRepositoryImpl.class, SolveAttemptRepositoryImpl.class, ProblemCorrectRateQueryRepositoryImpl.class, ProblemStatisticsCommandRepositoryImpl.class, ProblemMapper.class})
 @ContextConfiguration(classes = TestInfrastructureApplication.class)
 class SolvingRepositoryIntegrationTest {
 
@@ -52,6 +59,12 @@ class SolvingRepositoryIntegrationTest {
 
     @Autowired
     private SolveAttemptRepositoryImpl solveAttemptRepository;
+
+    @Autowired
+    private ProblemCorrectRateQueryRepository problemCorrectRateQueryRepository;
+
+    @Autowired
+    private ProblemStatisticsCommandRepositoryImpl problemStatisticsCommandRepository;
 
     @Autowired
     private ChapterJpaRepository chapterJpaRepository;
@@ -71,8 +84,16 @@ class SolvingRepositoryIntegrationTest {
     @Autowired
     private SolveAttemptAnswerJpaRepository solveAttemptAnswerJpaRepository;
 
+    @Autowired
+    private ProblemStatisticsJpaRepository problemStatisticsJpaRepository;
+
+    @Autowired
+    private ProblemUserStatisticsJpaRepository problemUserStatisticsJpaRepository;
+
     @BeforeEach
     void setUp() {
+        problemUserStatisticsJpaRepository.deleteAll();
+        problemStatisticsJpaRepository.deleteAll();
         solveAttemptAnswerJpaRepository.deleteAll();
         solveAttemptJpaRepository.deleteAll();
         problemAnswerKeyJpaRepository.deleteAll();
@@ -133,18 +154,36 @@ class SolvingRepositoryIntegrationTest {
     @Test
     @DisplayName("문제 정답률 집계를 조회한다")
     void loadProblemCorrectRateSummary() {
-        solveAttemptJpaRepository.saveAll(List.of(
-                SolveAttemptJpaEntity.create(1L, 1L, 100L, AttemptStatus.SOLVED, true, AnswerStatus.CORRECT, LocalDateTime.now().minusMinutes(3)),
-                SolveAttemptJpaEntity.create(2L, 1L, 100L, AttemptStatus.SOLVED, false, AnswerStatus.INCORRECT, LocalDateTime.now().minusMinutes(2)),
-                SolveAttemptJpaEntity.create(3L, 1L, 100L, AttemptStatus.SOLVED, true, AnswerStatus.CORRECT, LocalDateTime.now().minusMinutes(1)),
-                SolveAttemptJpaEntity.create(3L, 1L, 100L, AttemptStatus.SKIPPED, null, null, LocalDateTime.now())
-        ));
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(100L, 3L, 2L, 67, LocalDateTime.now())
+        );
 
-        Optional<ProblemCorrectRateSummary> summary = solveAttemptRepository.findCorrectRateByProblemId(100L);
+        Optional<ProblemCorrectRateSummary> summary = problemCorrectRateQueryRepository.findCorrectRateSummary(100L);
 
         assertThat(summary).isPresent();
         assertThat(summary.get().solvedUserCount()).isEqualTo(3L);
         assertThat(summary.get().correctUserCount()).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("문제 정답률 집계를 반복 저장하면 기존 row를 갱신한다")
+    void updateProblemStatisticsRow() {
+        chapterJpaRepository.save(ChapterJpaEntity.create(1L, "chapter-1"));
+        problemJpaRepository.save(
+                ProblemJpaEntity.create(100L, 1L, "problem-1", ProblemAnswerFormat.OBJECTIVE, ProblemType.SINGLE_ANSWER, "explanation-1")
+        );
+
+        problemStatisticsJpaRepository.save(
+                ProblemStatisticsJpaEntity.create(100L, 1L, 1L, null, LocalDateTime.now())
+        );
+        problemStatisticsCommandRepository.save(new com.project.quiz.domain.statistics.ProblemStatistics(100L, 2L, 1L, null));
+
+        List<ProblemStatisticsJpaEntity> statistics = problemStatisticsJpaRepository.findAll();
+
+        assertThat(statistics).hasSize(1);
+        assertThat(statistics.get(0).getProblemId()).isEqualTo(100L);
+        assertThat(statistics.get(0).getSolvedUserCount()).isEqualTo(2L);
+        assertThat(statistics.get(0).getCorrectUserCount()).isEqualTo(1L);
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.project.quiz.application.solving.service;
 
+import com.project.quiz.application.statistics.service.ProblemCorrectRateService;
 import com.project.quiz.application.solving.exception.ChapterNotFoundException;
 import com.project.quiz.application.solving.exception.NoAvailableProblemException;
 import com.project.quiz.application.solving.model.GetRandomProblemCommand;
@@ -13,7 +14,6 @@ import com.project.quiz.domain.problem.ProblemAnswerKey;
 import com.project.quiz.domain.problem.ProblemChoice;
 import com.project.quiz.domain.problem.ProblemType;
 import com.project.quiz.domain.solving.UserChapterSolvingState;
-import com.project.quiz.domain.statistics.ProblemCorrectRateSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +39,9 @@ class GetRandomProblemServiceTest {
     @Mock
     private SolveAttemptRepository solveAttemptRepository;
 
+    @Mock
+    private ProblemCorrectRateService problemCorrectRateService;
+
     private GetRandomProblemService getRandomProblemService;
 
     @BeforeEach
@@ -47,7 +49,8 @@ class GetRandomProblemServiceTest {
         getRandomProblemService = new GetRandomProblemService(
                 chapterRepository,
                 problemRepository,
-                solveAttemptRepository
+                solveAttemptRepository,
+                problemCorrectRateService
         );
     }
 
@@ -74,8 +77,7 @@ class GetRandomProblemServiceTest {
                 .thenReturn(new UserChapterSolvingState(1L, 10L, Set.of(101L), 102L));
         when(problemRepository.findAllByChapterId(10L))
                 .thenReturn(List.of(solvedProblem, skippedProblem, selectableProblem));
-        when(solveAttemptRepository.findCorrectRateByProblemId(103L))
-                .thenReturn(Optional.of(new ProblemCorrectRateSummary(30L, 20L)));
+        when(problemCorrectRateService.getCorrectRate(103L)).thenReturn(67);
 
         GetRandomProblemResult result = getRandomProblemService.getRandomProblem(command);
 
@@ -114,8 +116,7 @@ class GetRandomProblemServiceTest {
                 .thenReturn(new UserChapterSolvingState(1L, 10L, Set.of(), null));
         when(problemRepository.findAllByChapterId(10L))
                 .thenReturn(List.of(selectableProblem));
-        when(solveAttemptRepository.findCorrectRateByProblemId(103L))
-                .thenReturn(Optional.of(new ProblemCorrectRateSummary(29L, 29L)));
+        when(problemCorrectRateService.getCorrectRate(103L)).thenReturn(null);
 
         GetRandomProblemResult result = getRandomProblemService.getRandomProblem(command);
 
