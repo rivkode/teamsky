@@ -9,12 +9,25 @@ description: Use when implementing APIs for problem solving and solve history wi
 
 Implement APIs with clear boundaries and maintainable structure.
 
-## Target APIs
+## Use When
 
-- Get chapter questions
-- Submit solve answers
-- Get solve history list
-- Get solve history detail
+- adding or refactoring public endpoints
+- defining request/response DTOs
+- connecting controller -> application -> domain flow
+
+## Inputs
+
+- requirement brief
+- domain-modeling output
+- existing API conventions and error policy
+
+## Deliverables
+
+- endpoint list with method and path
+- request/response DTOs
+- controller methods wired to application layer
+- exception-to-HTTP mapping for major failure cases
+- at least minimal controller test coverage for success and failure flows
 
 ## Instructions
 
@@ -32,6 +45,12 @@ Implement APIs with clear boundaries and maintainable structure.
 - Separate list vs detail responses
 - Explicit DTO fields only
 
+## Non-Goals
+
+- moving business rules into controllers
+- designing storage/index strategy in detail
+- using API implementation to compensate for unresolved domain decisions
+
 ## Error Handling
 
 Cover:
@@ -41,8 +60,16 @@ Cover:
 - duplicate or invalid submission
 - unauthorized access
 
-## Done Criteria
+## Exit Criteria
 
-- APIs are complete and callable
-- Layer separation is maintained
-- DTOs are stable and explicit
+- each endpoint has a fixed request/response shape
+- controllers do not contain domain or persistence logic
+- entities are not exposed directly to API consumers
+- at least one success case and one failure case per endpoint can be verified by tests
+- the implementer does not need to make additional API contract decisions
+
+## Handoff
+
+- `test-and-verify` can extend controller/service tests from a stable contract
+- `submission-readme-and-review` can document the API without guessing response shapes
+- `spring-architecture` can validate that boundaries remain thin and explainable

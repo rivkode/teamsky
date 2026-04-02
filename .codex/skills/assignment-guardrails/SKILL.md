@@ -30,6 +30,12 @@ Prevent overengineering and keep the solution aligned with assignment expectatio
 - readable code > abstract code
 - practical solution > “perfect” architecture
 
+## Non-Goals
+
+- blocking justified abstractions that clearly improve the solution
+- treating all optimization or structure as overengineering
+- replacing the need for explicit architecture or domain decisions
+
 ## Done Criteria
 
 - solution is understandable within minutes
