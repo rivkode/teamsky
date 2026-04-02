@@ -3,6 +3,7 @@ package com.project.quiz.infrastructure.solving;
 import com.project.quiz.application.solving.repository.ProblemRepository;
 import com.project.quiz.domain.problem.Problem;
 import com.project.quiz.infrastructure.persistence.entity.ProblemChoiceJpaEntity;
+import com.project.quiz.infrastructure.persistence.entity.ProblemJpaEntity;
 import com.project.quiz.infrastructure.persistence.mapper.ProblemMapper;
 import com.project.quiz.infrastructure.persistence.repository.ProblemAnswerKeyJpaRepository;
 import com.project.quiz.infrastructure.persistence.repository.ProblemChoiceJpaRepository;
@@ -33,11 +34,11 @@ public class ProblemRepositoryImpl implements ProblemRepository {
 
     @Override
     public List<Problem> findAllByChapterId(Long chapterId) {
-        List<com.project.quiz.infrastructure.persistence.entity.ProblemJpaEntity> problems =
+        List<ProblemJpaEntity> problems =
                 problemJpaRepository.findAllByChapterIdOrderByIdAsc(chapterId);
 
         List<Long> problemIds = problems.stream()
-                .map(com.project.quiz.infrastructure.persistence.entity.ProblemJpaEntity::getId)
+                .map(ProblemJpaEntity::getId)
                 .toList();
 
         Map<Long, List<ProblemChoiceJpaEntity>> choicesByProblemId = problemChoiceJpaRepository
