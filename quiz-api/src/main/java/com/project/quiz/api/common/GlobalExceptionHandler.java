@@ -19,49 +19,55 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ChapterNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleChapterNotFound(ChapterNotFoundException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleChapterNotFound(ChapterNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("CHAPTER_NOT_FOUND", exception.getMessage()));
+                .body(CommonResponse.failure("CHAPTER_NOT_FOUND", exception.getMessage()));
     }
 
     @ExceptionHandler(NoAvailableProblemException.class)
-    public ResponseEntity<ErrorResponse> handleNoAvailableProblem(NoAvailableProblemException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleNoAvailableProblem(NoAvailableProblemException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("NO_AVAILABLE_PROBLEM", exception.getMessage()));
+                .body(CommonResponse.failure("NO_AVAILABLE_PROBLEM", exception.getMessage()));
     }
 
     @ExceptionHandler(ProblemNotFoundInChapterException.class)
-    public ResponseEntity<ErrorResponse> handleProblemNotFoundInChapter(ProblemNotFoundInChapterException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleProblemNotFoundInChapter(ProblemNotFoundInChapterException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("PROBLEM_NOT_FOUND_IN_CHAPTER", exception.getMessage()));
+                .body(CommonResponse.failure("PROBLEM_NOT_FOUND_IN_CHAPTER", exception.getMessage()));
     }
 
     @ExceptionHandler(SolvedProblemNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleSolvedProblemNotFound(SolvedProblemNotFoundException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleSolvedProblemNotFound(SolvedProblemNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("SOLVED_PROBLEM_NOT_FOUND", exception.getMessage()));
+                .body(CommonResponse.failure("SOLVED_PROBLEM_NOT_FOUND", exception.getMessage()));
     }
 
     @ExceptionHandler(ProblemAnswerTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleProblemAnswerTypeMismatch(ProblemAnswerTypeMismatchException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleProblemAnswerTypeMismatch(ProblemAnswerTypeMismatchException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("PROBLEM_ANSWER_TYPE_MISMATCH", exception.getMessage()));
+                .body(CommonResponse.failure("PROBLEM_ANSWER_TYPE_MISMATCH", exception.getMessage()));
     }
 
     @ExceptionHandler(InvalidProblemChoiceException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidProblemChoice(InvalidProblemChoiceException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleInvalidProblemChoice(InvalidProblemChoiceException exception) {
         return ResponseEntity.badRequest()
-                .body(new ErrorResponse("INVALID_PROBLEM_CHOICE", exception.getMessage()));
+                .body(CommonResponse.failure("INVALID_PROBLEM_CHOICE", exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
+    public ResponseEntity<CommonResponse<Void>> handleValidation(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult().getFieldErrors().stream()
                 .map(this::formatFieldError)
                 .collect(Collectors.joining(", "));
 
         return ResponseEntity.badRequest()
-                .body(new ErrorResponse("INVALID_REQUEST", message));
+                .body(CommonResponse.failure("INVALID_REQUEST", message));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<CommonResponse<Void>> handleRuntimeException(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(CommonResponse.failure("INTERNAL_SERVER_ERROR", "Unexpected server error"));
     }
 
     private String formatFieldError(FieldError fieldError) {

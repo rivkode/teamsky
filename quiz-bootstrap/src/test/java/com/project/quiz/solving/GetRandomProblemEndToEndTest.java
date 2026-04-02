@@ -141,11 +141,13 @@ class GetRandomProblemEndToEndTest {
                                 "userId", 1L
                         ))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(102))
-                .andExpect(jsonPath("$.content").value("출제될 문제"))
-                .andExpect(jsonPath("$.choices[0]").value("102-1"))
-                .andExpect(jsonPath("$.choices[4]").value("102-5"))
-                .andExpect(jsonPath("$.answerCorrectRate").value(nullValue()));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(102))
+                .andExpect(jsonPath("$.data.content").value("출제될 문제"))
+                .andExpect(jsonPath("$.data.choices[0]").value("102-1"))
+                .andExpect(jsonPath("$.data.choices[4]").value("102-5"))
+                .andExpect(jsonPath("$.data.answerCorrectRate").value(nullValue()))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
@@ -176,7 +178,8 @@ class GetRandomProblemEndToEndTest {
                                 "userId", 1L
                         ))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NO_AVAILABLE_PROBLEM"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("NO_AVAILABLE_PROBLEM"));
     }
 
     @Test
@@ -208,8 +211,10 @@ class GetRandomProblemEndToEndTest {
                                 "problemId", 1001L
                         ))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(1002))
-                .andExpect(jsonPath("$.content").value("다음 문제"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(1002))
+                .andExpect(jsonPath("$.data.content").value("다음 문제"))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
@@ -243,11 +248,13 @@ class GetRandomProblemEndToEndTest {
                                 "selectedChoices", List.of(1, 3)
                         ))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(3001))
-                .andExpect(jsonPath("$.answerStatus").value("PARTIAL"))
-                .andExpect(jsonPath("$.explanation").value("정답은 1번과 2번입니다."))
-                .andExpect(jsonPath("$.problemAnswers[0]").value("1"))
-                .andExpect(jsonPath("$.problemAnswers[1]").value("2"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(3001))
+                .andExpect(jsonPath("$.data.answerStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.data.explanation").value("정답은 1번과 2번입니다."))
+                .andExpect(jsonPath("$.data.problemAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.data.problemAnswers[1]").value("2"))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
@@ -293,13 +300,15 @@ class GetRandomProblemEndToEndTest {
                                 "problemId", 4001L
                         ))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(4001))
-                .andExpect(jsonPath("$.answerStatus").value("PARTIAL"))
-                .andExpect(jsonPath("$.problemAnswers[0]").value("1"))
-                .andExpect(jsonPath("$.problemAnswers[1]").value("2"))
-                .andExpect(jsonPath("$.userAnswers[0]").value("1"))
-                .andExpect(jsonPath("$.userAnswers[1]").value("3"))
-                .andExpect(jsonPath("$.answerCorrectRate").value(nullValue()));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(4001))
+                .andExpect(jsonPath("$.data.answerStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.data.problemAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.data.problemAnswers[1]").value("2"))
+                .andExpect(jsonPath("$.data.userAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.data.userAnswers[1]").value("3"))
+                .andExpect(jsonPath("$.data.answerCorrectRate").value(nullValue()))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
@@ -332,7 +341,9 @@ class GetRandomProblemEndToEndTest {
                                 "selectedChoices", List.of(2)
                         ))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.answerStatus").value("CORRECT"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.answerStatus").value("CORRECT"))
+                .andExpect(jsonPath("$.error").isEmpty());
 
         ProblemStatisticsJpaEntity statistics = problemStatisticsJpaRepository.findById(5001L).orElseThrow();
 

@@ -82,10 +82,12 @@ class ProblemControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(1))
-                .andExpect(jsonPath("$.content").value("문제 설명"))
-                .andExpect(jsonPath("$.choices[0]").value("보기 1"))
-                .andExpect(jsonPath("$.answerCorrectRate").value(67));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(1))
+                .andExpect(jsonPath("$.data.content").value("문제 설명"))
+                .andExpect(jsonPath("$.data.choices[0]").value("보기 1"))
+                .andExpect(jsonPath("$.data.answerCorrectRate").value(67))
+                .andExpect(jsonPath("$.error").isEmpty());
 
         verify(getRandomProblemService).getRandomProblem(any());
     }
@@ -94,10 +96,12 @@ class ProblemControllerTest {
     @DisplayName("랜덤 문제 요청 검증 실패면 400을 반환한다")
     void returnBadRequestWhenRandomRequestInvalid() throws Exception {
         mockMvc.perform(post("/api/problems/random")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(null, 1L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(null, 1L))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
     }
 
     @Test
@@ -107,10 +111,11 @@ class ProblemControllerTest {
                 .thenThrow(new ChapterNotFoundException(999L));
 
         mockMvc.perform(post("/api/problems/random")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 999L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 999L))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("CHAPTER_NOT_FOUND"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("CHAPTER_NOT_FOUND"));
     }
 
     @Test
@@ -120,10 +125,11 @@ class ProblemControllerTest {
                 .thenThrow(new NoAvailableProblemException(1L, 1L));
 
         mockMvc.perform(post("/api/problems/random")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NO_AVAILABLE_PROBLEM"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("NO_AVAILABLE_PROBLEM"));
     }
 
     @Test
@@ -141,21 +147,24 @@ class ProblemControllerTest {
                 ));
 
         mockMvc.perform(post("/api/problems/skip")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SkipProblemRequest(1L, 1L, 100L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SkipProblemRequest(1L, 1L, 100L))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(101))
-                .andExpect(jsonPath("$.content").value("다음 문제"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(101))
+                .andExpect(jsonPath("$.data.content").value("다음 문제"))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
     @DisplayName("문제 넘기기에서 잘못된 요청이면 400을 반환한다")
     void returnBadRequestWhenSkipRequestInvalid() throws Exception {
         mockMvc.perform(post("/api/problems/skip")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SkipProblemRequest(1L, null, 100L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SkipProblemRequest(1L, null, 100L))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
     }
 
     @Test
@@ -165,10 +174,11 @@ class ProblemControllerTest {
                 .thenThrow(new ProblemNotFoundInChapterException(1L, 100L));
 
         mockMvc.perform(post("/api/problems/skip")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SkipProblemRequest(1L, 1L, 100L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SkipProblemRequest(1L, 1L, 100L))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PROBLEM_NOT_FOUND_IN_CHAPTER"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PROBLEM_NOT_FOUND_IN_CHAPTER"));
     }
 
     @Test
@@ -186,24 +196,27 @@ class ProblemControllerTest {
                 ));
 
         mockMvc.perform(post("/api/problems/detail")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, 3L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, 3L))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(3))
-                .andExpect(jsonPath("$.answerStatus").value("PARTIAL"))
-                .andExpect(jsonPath("$.problemAnswers[0]").value("1"))
-                .andExpect(jsonPath("$.userAnswers[1]").value("3"))
-                .andExpect(jsonPath("$.answerCorrectRate").value(67));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(3))
+                .andExpect(jsonPath("$.data.answerStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.data.problemAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.data.userAnswers[1]").value("3"))
+                .andExpect(jsonPath("$.data.answerCorrectRate").value(67))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
     @DisplayName("풀었던 문제 상세 요청이 잘못되면 400을 반환한다")
     void returnBadRequestWhenDetailRequestInvalid() throws Exception {
         mockMvc.perform(post("/api/problems/detail")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, null))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
     }
 
     @Test
@@ -213,10 +226,11 @@ class ProblemControllerTest {
                 .thenThrow(new SolvedProblemNotFoundException(1L, 3L));
 
         mockMvc.perform(post("/api/problems/detail")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, 3L))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, 3L))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("SOLVED_PROBLEM_NOT_FOUND"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("SOLVED_PROBLEM_NOT_FOUND"));
     }
 
     @Test
@@ -226,12 +240,14 @@ class ProblemControllerTest {
                 .thenReturn(new SubmitProblemAnswerResult(1001L, ProblemAnswerFormat.OBJECTIVE, AnswerStatus.PARTIAL, "해설", List.of("1", "2")));
 
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 3), null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 3), null))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.problemId").value(1001))
-                .andExpect(jsonPath("$.answerStatus").value("PARTIAL"))
-                .andExpect(jsonPath("$.problemAnswers[0]").value("1"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.problemId").value(1001))
+                .andExpect(jsonPath("$.data.answerStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.data.problemAnswers[0]").value("1"))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
     @Test
@@ -241,10 +257,11 @@ class ProblemControllerTest {
                 .thenThrow(new ProblemNotFoundInChapterException(null, 999L));
 
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(999L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(999L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), null))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PROBLEM_NOT_FOUND_IN_CHAPTER"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PROBLEM_NOT_FOUND_IN_CHAPTER"));
     }
 
     @Test
@@ -254,65 +271,71 @@ class ProblemControllerTest {
                 .thenThrow(new ProblemAnswerTypeMismatchException(1001L));
 
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), null))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("PROBLEM_ANSWER_TYPE_MISMATCH"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PROBLEM_ANSWER_TYPE_MISMATCH"));
     }
 
     @Test
     @DisplayName("객관식 제출에서 선택지가 비어 있으면 400을 반환한다")
     void returnBadRequestWhenObjectiveChoicesMissing() throws Exception {
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(), null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(), null))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("selectedChoices: selectedChoices must not be empty for OBJECTIVE answerType"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.message").value("selectedChoices: selectedChoices must not be empty for OBJECTIVE answerType"));
     }
 
     @Test
     @DisplayName("주관식 제출에서 답안이 비어 있으면 400을 반환한다")
     void returnBadRequestWhenSubjectiveAnswerMissing() throws Exception {
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.SUBJECTIVE, null, "   "))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.SUBJECTIVE, null, "   "))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("subjectiveAnswer: subjectiveAnswer must not be blank for SUBJECTIVE answerType"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.message").value("subjectiveAnswer: subjectiveAnswer must not be blank for SUBJECTIVE answerType"));
     }
 
     @Test
     @DisplayName("객관식 제출에서 주관식 답안이 같이 오면 400을 반환한다")
     void returnBadRequestWhenObjectiveContainsSubjectiveAnswer() throws Exception {
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), "text"))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1), "text"))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("subjectiveAnswer: subjectiveAnswer must be blank for OBJECTIVE answerType"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.message").value("subjectiveAnswer: subjectiveAnswer must be blank for OBJECTIVE answerType"));
     }
 
     @Test
     @DisplayName("주관식 제출에서 객관식 선택지가 같이 오면 400을 반환한다")
     void returnBadRequestWhenSubjectiveContainsSelectedChoices() throws Exception {
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.SUBJECTIVE, List.of(1), "answer"))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.SUBJECTIVE, List.of(1), "answer"))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("selectedChoices: selectedChoices must be empty for SUBJECTIVE answerType"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.message").value("selectedChoices: selectedChoices must be empty for SUBJECTIVE answerType"));
     }
 
     @Test
     @DisplayName("객관식 제출에서 중복 선택지가 오면 400을 반환한다")
     void returnBadRequestWhenObjectiveContainsDuplicateChoices() throws Exception {
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 1), null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(1, 1), null))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("selectedChoices: selectedChoices must not contain duplicates"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.message").value("selectedChoices: selectedChoices must not contain duplicates"));
     }
 
     @Test
@@ -322,9 +345,25 @@ class ProblemControllerTest {
                 .thenThrow(new InvalidProblemChoiceException(1001L, List.of(7)));
 
         mockMvc.perform(post("/api/problems/submit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(7), null))))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SubmitProblemAnswerRequest(1001L, 1L, ProblemAnswerFormat.OBJECTIVE, List.of(7), null))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_PROBLEM_CHOICE"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_PROBLEM_CHOICE"));
     }
+
+    @Test
+    @DisplayName("예상하지 못한 런타임 예외가 발생하면 500 공통 응답을 반환한다")
+    void returnInternalServerErrorWhenUnexpectedRuntimeExceptionOccurs() throws Exception {
+        when(getRandomProblemService.getRandomProblem(any()))
+                .thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(post("/api/problems/random")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INTERNAL_SERVER_ERROR"))
+                .andExpect(jsonPath("$.error.message").value("Unexpected server error"));
+}
 }
