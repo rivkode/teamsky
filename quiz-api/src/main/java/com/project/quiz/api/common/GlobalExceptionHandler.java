@@ -9,6 +9,7 @@ import com.project.quiz.application.solving.exception.SolvedProblemNotFoundExcep
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,6 +57,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<CommonResponse<Void>> handleValidation(MethodArgumentNotValidException exception) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+                .map(this::formatFieldError)
+                .collect(Collectors.joining(", "));
+
+        return ResponseEntity.badRequest()
+                .body(CommonResponse.failure("INVALID_REQUEST", message));
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<CommonResponse<Void>> handleBindException(BindException exception) {
         String message = exception.getBindingResult().getFieldErrors().stream()
                 .map(this::formatFieldError)
                 .collect(Collectors.joining(", "));

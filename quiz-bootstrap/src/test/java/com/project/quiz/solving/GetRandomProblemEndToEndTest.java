@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -134,12 +135,9 @@ class GetRandomProblemEndToEndTest {
                 ProblemStatisticsJpaEntity.create(102L, 3L, 2L, null, LocalDateTime.now())
         );
 
-        mockMvc.perform(post("/api/problems/random")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "chapterId", 1L,
-                                "userId", 1L
-                        ))))
+        mockMvc.perform(get("/api/problems/random")
+                        .queryParam("chapterId", "1")
+                        .queryParam("userId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.problemId").value(102))
@@ -171,12 +169,9 @@ class GetRandomProblemEndToEndTest {
                 SolveAttemptJpaEntity.create(1L, 1L, 101L, AttemptStatus.SKIPPED, null, null, LocalDateTime.now().minusMinutes(1))
         ));
 
-        mockMvc.perform(post("/api/problems/random")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "chapterId", 1L,
-                                "userId", 1L
-                        ))))
+        mockMvc.perform(get("/api/problems/random")
+                        .queryParam("chapterId", "1")
+                        .queryParam("userId", "1"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("NO_AVAILABLE_PROBLEM"));
@@ -293,12 +288,9 @@ class GetRandomProblemEndToEndTest {
                 ProblemStatisticsJpaEntity.create(4001L, 4L, 2L, null, LocalDateTime.now())
         );
 
-        mockMvc.perform(post("/api/problems/detail")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "userId", 1L,
-                                "problemId", 4001L
-                        ))))
+        mockMvc.perform(get("/api/problems/detail")
+                        .queryParam("userId", "1")
+                        .queryParam("problemId", "4001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.problemId").value(4001))
