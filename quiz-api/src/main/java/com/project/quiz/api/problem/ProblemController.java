@@ -22,6 +22,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,8 +66,8 @@ public class ProblemController {
                     content = @Content(schema = @Schema(implementation = CommonErrorResponse.class))
             )
     })
-    @PostMapping("/random")
-    public ResponseEntity<CommonResponse<GetRandomProblemResponse>> getRandomProblem(@Valid @RequestBody GetRandomProblemRequest request) {
+    @GetMapping("/random")
+    public ResponseEntity<CommonResponse<GetRandomProblemResponse>> getRandomProblem(@Valid @ModelAttribute GetRandomProblemRequest request) {
         GetRandomProblemResult result = getRandomProblemService.getRandomProblem(
                 new GetRandomProblemCommand(request.userId(), request.chapterId())
         );
@@ -124,8 +126,8 @@ public class ProblemController {
                     content = @Content(schema = @Schema(implementation = CommonErrorResponse.class))
             )
     })
-    @PostMapping("/detail")
-    public ResponseEntity<CommonResponse<GetSolvedProblemDetailResponse>> getSolvedProblemDetail(@Valid @RequestBody GetSolvedProblemDetailRequest request) {
+    @GetMapping("/detail")
+    public ResponseEntity<CommonResponse<GetSolvedProblemDetailResponse>> getSolvedProblemDetail(@Valid @ModelAttribute GetSolvedProblemDetailRequest request) {
         GetSolvedProblemDetailResult result = getSolvedProblemDetailService.getDetail(
                 new GetSolvedProblemDetailCommand(request.userId(), request.problemId())
         );

@@ -33,6 +33,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -78,9 +79,9 @@ class ProblemControllerTest {
 
         when(getRandomProblemService.getRandomProblem(any())).thenReturn(result);
 
-        mockMvc.perform(post("/api/problems/random")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
+        mockMvc.perform(get("/api/problems/random")
+                        .queryParam("chapterId", "1")
+                        .queryParam("userId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.problemId").value(1))
@@ -95,9 +96,8 @@ class ProblemControllerTest {
     @Test
     @DisplayName("랜덤 문제 요청 검증 실패면 400을 반환한다")
     void returnBadRequestWhenRandomRequestInvalid() throws Exception {
-        mockMvc.perform(post("/api/problems/random")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(null, 1L))))
+        mockMvc.perform(get("/api/problems/random")
+                .queryParam("userId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.data").isEmpty())
@@ -110,9 +110,9 @@ class ProblemControllerTest {
         when(getRandomProblemService.getRandomProblem(any()))
                 .thenThrow(new ChapterNotFoundException(999L));
 
-        mockMvc.perform(post("/api/problems/random")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 999L))))
+        mockMvc.perform(get("/api/problems/random")
+                .queryParam("chapterId", "1")
+                .queryParam("userId", "999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("CHAPTER_NOT_FOUND"));
@@ -124,9 +124,9 @@ class ProblemControllerTest {
         when(getRandomProblemService.getRandomProblem(any()))
                 .thenThrow(new NoAvailableProblemException(1L, 1L));
 
-        mockMvc.perform(post("/api/problems/random")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
+        mockMvc.perform(get("/api/problems/random")
+                .queryParam("chapterId", "1")
+                .queryParam("userId", "1"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("NO_AVAILABLE_PROBLEM"));
@@ -195,9 +195,9 @@ class ProblemControllerTest {
                         67
                 ));
 
-        mockMvc.perform(post("/api/problems/detail")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, 3L))))
+        mockMvc.perform(get("/api/problems/detail")
+                .queryParam("userId", "1")
+                .queryParam("problemId", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.problemId").value(3))
@@ -211,9 +211,8 @@ class ProblemControllerTest {
     @Test
     @DisplayName("풀었던 문제 상세 요청이 잘못되면 400을 반환한다")
     void returnBadRequestWhenDetailRequestInvalid() throws Exception {
-        mockMvc.perform(post("/api/problems/detail")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, null))))
+        mockMvc.perform(get("/api/problems/detail")
+                .queryParam("userId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
@@ -225,9 +224,9 @@ class ProblemControllerTest {
         when(getSolvedProblemDetailService.getDetail(any()))
                 .thenThrow(new SolvedProblemNotFoundException(1L, 3L));
 
-        mockMvc.perform(post("/api/problems/detail")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetSolvedProblemDetailRequest(1L, 3L))))
+        mockMvc.perform(get("/api/problems/detail")
+                .queryParam("userId", "1")
+                .queryParam("problemId", "3"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("SOLVED_PROBLEM_NOT_FOUND"));
@@ -358,9 +357,9 @@ class ProblemControllerTest {
         when(getRandomProblemService.getRandomProblem(any()))
                 .thenThrow(new RuntimeException("boom"));
 
-        mockMvc.perform(post("/api/problems/random")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new GetRandomProblemRequest(1L, 1L))))
+        mockMvc.perform(get("/api/problems/random")
+                .queryParam("chapterId", "1")
+                .queryParam("userId", "1"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("INTERNAL_SERVER_ERROR"))

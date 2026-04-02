@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
-import { BASE_URL, chapters, commonThresholds, jsonParams, randomUsers } from "./config.js";
+import { BASE_URL, chapters, commonThresholds, randomUsers, requestParams } from "./config.js";
 
 export const options = {
   scenarios: {
@@ -23,16 +23,9 @@ export const options = {
 
 export default function () {
   const userId = randomUsers[(__VU + __ITER) % randomUsers.length];
-  const payload = JSON.stringify({
-    chapterId: chapters[0],
-    userId,
-  });
+  const url = `${BASE_URL}/api/problems/random?chapterId=${chapters[0]}&userId=${userId}`;
 
-  const response = http.post(
-    `${BASE_URL}/api/problems/random`,
-    payload,
-    jsonParams({ endpoint: "random", scenario: "random_read" }),
-  );
+  const response = http.get(url, requestParams({ endpoint: "random", scenario: "random_read" }));
 
   check(response, {
     "random status is 200 or 409": (r) => r.status === 200 || r.status === 409,

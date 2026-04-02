@@ -25,9 +25,15 @@ export const submitUsers = new SharedArray("submitUsers", function () {
   return Array.from({ length: 200 }, (_, index) => index + 2000);
 });
 
+export function requestParams(tags = {}) {
+  return {
+    tags: { ...commonTags, ...tags },
+  };
+}
+
 export function jsonParams(tags = {}) {
   return {
     headers: { "Content-Type": "application/json" },
-    tags: { ...commonTags, ...tags },
+    ...requestParams(tags),
   };
 }

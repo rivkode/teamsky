@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
-import { BASE_URL, commonThresholds, jsonParams } from "./config.js";
+import { BASE_URL, commonThresholds, requestParams } from "./config.js";
 
 const DETAIL_USER_ID = Number(__ENV.DETAIL_USER_ID || 1);
 const DETAIL_PROBLEM_ID = Number(__ENV.DETAIL_PROBLEM_ID || 1003);
@@ -25,16 +25,9 @@ export const options = {
 };
 
 export default function () {
-  const payload = JSON.stringify({
-    userId: DETAIL_USER_ID,
-    problemId: DETAIL_PROBLEM_ID,
-  });
+  const url = `${BASE_URL}/api/problems/detail?userId=${DETAIL_USER_ID}&problemId=${DETAIL_PROBLEM_ID}`;
 
-  const response = http.post(
-    `${BASE_URL}/api/problems/detail`,
-    payload,
-    jsonParams({ endpoint: "detail", scenario: "detail_read" }),
-  );
+  const response = http.get(url, requestParams({ endpoint: "detail", scenario: "detail_read" }));
 
   check(response, {
     "detail status is 200": (r) => r.status === 200,

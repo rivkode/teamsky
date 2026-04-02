@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
-import { BASE_URL, chapters, commonThresholds, jsonParams, randomUsers, submitUsers } from "./config.js";
+import { BASE_URL, chapters, commonThresholds, jsonParams, randomUsers, requestParams, submitUsers } from "./config.js";
 
 const HOT_PROBLEM_ID = Number(__ENV.HOT_PROBLEM_ID || 1002);
 const DETAIL_USER_ID = Number(__ENV.DETAIL_USER_ID || 1);
@@ -59,11 +59,8 @@ export const options = {
 
 export function randomScenario() {
   const userId = randomUsers[(__VU + __ITER) % randomUsers.length];
-  const response = http.post(
-    `${BASE_URL}/api/problems/random`,
-    JSON.stringify({ chapterId: chapters[0], userId }),
-    jsonParams({ endpoint: "random", scenario: "mixed_load" }),
-  );
+  const url = `${BASE_URL}/api/problems/random?chapterId=${chapters[0]}&userId=${userId}`;
+  const response = http.get(url, requestParams({ endpoint: "random", scenario: "mixed_load" }));
 
   check(response, {
     "mixed random status is 200 or 409": (r) => r.status === 200 || r.status === 409,
@@ -72,11 +69,8 @@ export function randomScenario() {
 }
 
 export function detailScenario() {
-  const response = http.post(
-    `${BASE_URL}/api/problems/detail`,
-    JSON.stringify({ userId: DETAIL_USER_ID, problemId: DETAIL_PROBLEM_ID }),
-    jsonParams({ endpoint: "detail", scenario: "mixed_load" }),
-  );
+  const url = `${BASE_URL}/api/problems/detail?userId=${DETAIL_USER_ID}&problemId=${DETAIL_PROBLEM_ID}`;
+  const response = http.get(url, requestParams({ endpoint: "detail", scenario: "mixed_load" }));
 
   check(response, {
     "mixed detail status is 200": (r) => r.status === 200,
