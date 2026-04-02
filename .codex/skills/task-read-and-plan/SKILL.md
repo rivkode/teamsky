@@ -9,6 +9,28 @@ description: Use when starting a backend assignment to extract requirements, hid
 
 Turn a short assignment brief into a structured implementation plan before writing code.
 
+## Use When
+
+- starting a new assignment or feature from a brief
+- requirements are short but imply hidden domain or performance concerns
+- the next step should be planning rather than coding
+
+## Inputs
+
+- assignment brief or ticket
+- existing repo context if available
+- explicit constraints such as stack, deadlines, and deliverables
+
+## Deliverables
+
+- functional requirements list
+- hidden constraints and assumptions
+- core domain concepts
+- API candidates
+- persistence outline
+- performance risks
+- test plan
+
 ## Instructions
 
 1. Extract functional requirements
@@ -26,6 +48,12 @@ Turn a short assignment brief into a structured implementation plan before writi
 - Separate write use cases from read use cases
 - Explicitly state assumptions for unclear requirements
 
+## Non-Goals
+
+- choosing concrete class/file names for implementation
+- writing production code or tests
+- finalizing low-level schema or API payload details unless required by the brief
+
 ## Output Format
 
 - Requirements
@@ -35,8 +63,15 @@ Turn a short assignment brief into a structured implementation plan before writi
 - Performance risks
 - Test plan
 
-## Done Criteria
+## Exit Criteria
 
-- Clear implementation plan exists
-- Core domain is identified
-- Performance and edge cases are considered
+- requirements are concrete enough that implementation can start without reopening product questions
+- assumptions are explicit rather than hidden in the plan
+- domain, API, persistence, performance, and test sections are all present
+- the implementer does not need to make first-order design decisions before coding
+
+## Handoff
+
+- `spring-architecture` can choose structure from the plan
+- `domain-modeling` can begin with named concepts and rules
+- `api-delivery`, `persistence-and-indexing`, and `test-and-verify` can execute without rediscovering scope
