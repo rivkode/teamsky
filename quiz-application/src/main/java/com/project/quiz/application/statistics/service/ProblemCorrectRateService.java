@@ -17,7 +17,7 @@ public class ProblemCorrectRateService {
 
     private final ProblemCorrectRateQueryRepository problemCorrectRateQueryRepository;
     private final ProblemCorrectRateCacheRepository problemCorrectRateCacheRepository;
-    private final ProblemCorrectRatePolicy problemCorrectRatePolicy = new ProblemCorrectRatePolicy();
+    private final ProblemCorrectRatePolicy problemCorrectRatePolicy;
 
     public Integer getCorrectRate(Long problemId) {
         Optional<ProblemCorrectRateCacheEntry> cachedCorrectRate = problemCorrectRateCacheRepository.find(problemId);

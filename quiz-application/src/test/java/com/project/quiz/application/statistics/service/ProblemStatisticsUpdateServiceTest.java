@@ -4,6 +4,7 @@ import com.project.quiz.application.statistics.repository.ProblemCorrectRateCach
 import com.project.quiz.application.statistics.repository.ProblemStatisticsCommandRepository;
 import com.project.quiz.application.statistics.repository.ProblemUserStatisticsRepository;
 import com.project.quiz.domain.solving.AnswerStatus;
+import com.project.quiz.domain.statistics.ProblemCorrectRatePolicy;
 import com.project.quiz.domain.statistics.ProblemStatistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,8 @@ class ProblemStatisticsUpdateServiceTest {
         problemStatisticsUpdateService = new ProblemStatisticsUpdateService(
                 problemStatisticsCommandRepository,
                 problemUserStatisticsRepository,
-                problemCorrectRateCacheRepository
+                problemCorrectRateCacheRepository,
+                new ProblemCorrectRatePolicy()
         );
     }
 

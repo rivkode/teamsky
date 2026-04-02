@@ -17,7 +17,7 @@ public class ProblemStatisticsUpdateService {
     private final ProblemStatisticsCommandRepository problemStatisticsCommandRepository;
     private final ProblemUserStatisticsRepository problemUserStatisticsRepository;
     private final ProblemCorrectRateCacheRepository problemCorrectRateCacheRepository;
-    private final ProblemCorrectRatePolicy problemCorrectRatePolicy = new ProblemCorrectRatePolicy();
+    private final ProblemCorrectRatePolicy problemCorrectRatePolicy;
 
     @Transactional
     public void recordSolvedProblem(Long problemId, Long userId, AnswerStatus answerStatus) {

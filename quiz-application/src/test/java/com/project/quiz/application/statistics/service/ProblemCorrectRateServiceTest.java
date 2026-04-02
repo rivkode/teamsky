@@ -3,6 +3,7 @@ package com.project.quiz.application.statistics.service;
 import com.project.quiz.application.statistics.repository.ProblemCorrectRateCacheEntry;
 import com.project.quiz.application.statistics.repository.ProblemCorrectRateCacheRepository;
 import com.project.quiz.application.statistics.repository.ProblemCorrectRateQueryRepository;
+import com.project.quiz.domain.statistics.ProblemCorrectRatePolicy;
 import com.project.quiz.domain.statistics.ProblemCorrectRateSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,8 @@ class ProblemCorrectRateServiceTest {
     void setUp() {
         problemCorrectRateService = new ProblemCorrectRateService(
                 problemCorrectRateQueryRepository,
-                problemCorrectRateCacheRepository
+                problemCorrectRateCacheRepository,
+                new ProblemCorrectRatePolicy()
         );
     }
 
